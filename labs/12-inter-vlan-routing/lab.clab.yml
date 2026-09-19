@@ -1,0 +1,43 @@
+name: pp12
+
+topology:
+  nodes:
+    h10:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec: ["ip addr add 10.10.10.10/24 dev eth1", "ip route add 10.20.20.0/24 via 10.10.10.1"]
+    sw1:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec:
+        - ip link add br0 type bridge vlan_filtering 1
+        - ip link set br0 up
+        - ip link set eth1 master br0
+        - ip link set eth2 master br0
+        - ip link set eth3 master br0
+        - bridge vlan del dev eth1 vid 1
+        - bridge vlan del dev eth2 vid 1
+        - bridge vlan del dev eth3 vid 1
+        - bridge vlan add dev eth1 vid 10 pvid untagged
+        - bridge vlan add dev eth2 vid 20 pvid untagged
+        - bridge vlan add dev eth3 vid 10
+        - bridge vlan add dev eth3 vid 20
+    r1:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      sysctls: {net.ipv4.ip_forward: 1}
+      exec:
+        - ip link add link eth1 name eth1.10 type vlan id 10
+        - ip link add link eth1 name eth1.20 type vlan id 20
+        - ip addr add 10.10.10.1/24 dev eth1.10
+        - ip addr add 10.20.20.1/24 dev eth1.20
+        - ip link set eth1.10 up
+        - ip link set eth1.20 up
+    h20:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec: ["ip addr add 10.20.20.20/24 dev eth1", "ip route add 10.10.10.0/24 via 10.20.20.1"]
+  links:
+    - endpoints: ["h10:eth1", "sw1:eth1"]
+    - endpoints: ["h20:eth1", "sw1:eth2"]
+    - endpoints: ["sw1:eth3", "r1:eth1"]

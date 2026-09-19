@@ -1,0 +1,16 @@
+name: pp01
+
+topology:
+  nodes:
+    pc1:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec:
+        - ip addr add 10.0.0.1/24 dev eth1
+    pc2:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec:
+        - ip addr add 10.0.0.2/24 dev eth1
+  links:
+    - endpoints: ["pc1:eth1", "pc2:eth1"]

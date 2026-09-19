@@ -1,0 +1,38 @@
+name: pp15
+
+topology:
+  nodes:
+    h1a: {kind: linux, image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}", exec: ["ip addr add 10.10.10.11/24 dev eth1"]}
+    h1b: {kind: linux, image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}", exec: ["ip addr add 10.10.10.12/24 dev eth1"]}
+    vtep1:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec:
+        - ip addr add 192.0.2.1/30 dev eth3
+        - ip link add br100 type bridge
+        - ip link set br100 up
+        - ip link set eth1 master br100
+        - ip link set eth2 master br100
+        - ip link add vxlan100 type vxlan id 100 local 192.0.2.1 remote 192.0.2.2 dstport 4789 dev eth3
+        - ip link set vxlan100 master br100
+        - ip link set vxlan100 up
+    vtep2:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec:
+        - ip addr add 192.0.2.2/30 dev eth3
+        - ip link add br100 type bridge
+        - ip link set br100 up
+        - ip link set eth1 master br100
+        - ip link set eth2 master br100
+        - ip link add vxlan100 type vxlan id 100 local 192.0.2.2 remote 192.0.2.1 dstport 4789 dev eth3
+        - ip link set vxlan100 master br100
+        - ip link set vxlan100 up
+    h2a: {kind: linux, image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}", exec: ["ip addr add 10.10.10.21/24 dev eth1"]}
+    h2b: {kind: linux, image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}", exec: ["ip addr add 10.10.10.22/24 dev eth1"]}
+  links:
+    - endpoints: ["h1a:eth1", "vtep1:eth1"]
+    - endpoints: ["h1b:eth1", "vtep1:eth2"]
+    - endpoints: ["vtep1:eth3", "vtep2:eth3"]
+    - endpoints: ["vtep2:eth1", "h2a:eth1"]
+    - endpoints: ["vtep2:eth2", "h2b:eth1"]

@@ -1,0 +1,30 @@
+name: pp27
+
+topology:
+  nodes:
+    host:
+      kind: host
+      exec:
+        - modprobe mpls_router
+        - modprobe mpls_iptunnel
+    r1:
+      kind: linux
+      image: "${FRR_IMAGE:=quay.io/frrouting/frr:10.7.1}"
+      sysctls: {net.ipv4.ip_forward: 1, net.mpls.platform_labels: 100000, net.mpls.conf.eth1.input: 1}
+      binds: ["configs/daemons:/etc/frr/daemons:ro", "configs/r1.conf:/etc/frr/frr.conf:ro"]
+      exec: ["ip addr add 10.0.12.1/30 dev eth1", "ip addr add 1.1.1.1/32 dev lo"]
+    r2:
+      kind: linux
+      image: "${FRR_IMAGE:=quay.io/frrouting/frr:10.7.1}"
+      sysctls: {net.ipv4.ip_forward: 1, net.mpls.platform_labels: 100000, net.mpls.conf.eth1.input: 1, net.mpls.conf.eth2.input: 1}
+      binds: ["configs/daemons:/etc/frr/daemons:ro", "configs/r2.conf:/etc/frr/frr.conf:ro"]
+      exec: ["ip addr add 10.0.12.2/30 dev eth1", "ip addr add 10.0.23.1/30 dev eth2", "ip addr add 2.2.2.2/32 dev lo"]
+    r3:
+      kind: linux
+      image: "${FRR_IMAGE:=quay.io/frrouting/frr:10.7.1}"
+      sysctls: {net.ipv4.ip_forward: 1, net.mpls.platform_labels: 100000, net.mpls.conf.eth1.input: 1}
+      binds: ["configs/daemons:/etc/frr/daemons:ro", "configs/r3.conf:/etc/frr/frr.conf:ro"]
+      exec: ["ip addr add 10.0.23.2/30 dev eth1", "ip addr add 3.3.3.3/32 dev lo"]
+  links:
+    - endpoints: ["r1:eth1", "r2:eth1"]
+    - endpoints: ["r2:eth2", "r3:eth1"]

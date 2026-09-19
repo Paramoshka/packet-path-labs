@@ -1,0 +1,14 @@
+name: pp24
+
+topology:
+  nodes:
+    h1:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec: ["ip -6 addr add 2001:db8:1::1/64 dev eth1"]
+    h2:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec: ["ip -6 addr add 2001:db8:1::2/64 dev eth1"]
+  links:
+    - endpoints: ["h1:eth1", "h2:eth1"]

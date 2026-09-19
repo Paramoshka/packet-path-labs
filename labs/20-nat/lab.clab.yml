@@ -1,0 +1,26 @@
+name: pp20
+
+topology:
+  nodes:
+    inside:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec: ["ip addr add 10.0.0.10/24 dev eth1", "ip route add default via 10.0.0.1"]
+    nat:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      sysctls: {net.ipv4.ip_forward: 1}
+      exec:
+        - apk add --no-cache iptables
+        - ip addr add 10.0.0.1/24 dev eth1
+        - ip addr add 198.51.100.1/24 dev eth2
+        - iptables -t nat -A POSTROUTING -o eth2 -s 10.0.0.0/24 -j MASQUERADE
+        - iptables -A FORWARD -i eth1 -o eth2 -j ACCEPT
+        - iptables -A FORWARD -i eth2 -o eth1 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    outside:
+      kind: linux
+      image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
+      exec: ["ip addr add 198.51.100.2/24 dev eth1"]
+  links:
+    - endpoints: ["inside:eth1", "nat:eth1"]
+    - endpoints: ["nat:eth2", "outside:eth1"]
