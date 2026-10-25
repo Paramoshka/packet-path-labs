@@ -1,0 +1,46 @@
+name: pp39
+topology:
+  defaults:
+    kind: linux
+    image: ${LAB_IMAGE:=alpine:3.22}
+    cmd: sleep infinity
+  nodes:
+    client:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump curl bind-tools
+      - ip addr add 10.39.1.10/24 dev eth1
+      - ip route add 10.39.2.0/24 via 10.39.1.1
+      - ip route add 10.39.3.0/24 via 10.39.1.1
+    r1:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump iptables conntrack-tools
+      - ip addr add 10.39.1.1/24 dev eth1
+      - ip addr add 10.39.2.1/24 dev eth2
+      - ip addr add 10.39.3.1/24 dev eth3
+      sysctls:
+        net.ipv4.ip_forward: 1
+    server:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump python3
+      - ip addr add 10.39.2.10/24 dev eth1
+      - ip route add 10.39.1.0/24 via 10.39.2.1
+      - sh -c 'mkdir -p /www; echo packet-path-labs > /www/index.html; nohup python3 -m http.server 8080 --directory
+        /www > /tmp/http.log 2>&1 < /dev/null &'
+    dns:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump dnsmasq
+      - ip addr add 10.39.3.53/24 dev eth1
+      - ip route add 10.39.1.0/24 via 10.39.3.1
+      - dnsmasq --conf-file=/etc/dnsmasq.conf
+      binds:
+      - configs/dnsmasq.conf:/etc/dnsmasq.conf:ro
+  links:
+  - endpoints:
+    - client:eth1
+    - r1:eth1
+  - endpoints:
+    - r1:eth2
+    - server:eth1
+  - endpoints:
+    - r1:eth3
+    - dns:eth1
