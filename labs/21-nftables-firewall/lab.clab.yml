@@ -12,7 +12,7 @@ topology:
       sysctls: {net.ipv4.ip_forward: 1}
       binds: ["configs/fw.nft:/etc/fw.nft:ro"]
       exec:
-        - apk add --no-cache nftables
+        - apk add --no-cache nftables conntrack-tools
         - ip addr add 10.0.1.1/24 dev eth1
         - ip addr add 10.0.2.1/24 dev eth2
         - nft -f /etc/fw.nft

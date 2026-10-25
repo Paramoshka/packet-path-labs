@@ -3,6 +3,7 @@ name: pp24
 topology:
   nodes:
     h1:
+      binds: ["configs/ra.conf:/etc/dnsmasq.conf:ro"]
       kind: linux
       image: "${LINUX_IMAGE:=ghcr.io/srl-labs/network-multitool:latest}"
       exec: ["ip -6 addr add 2001:db8:1::1/64 dev eth1"]
