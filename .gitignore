@@ -3,3 +3,4 @@ clab-*
 *.pcap
 *.pcapng
 .env
+__pycache__/
