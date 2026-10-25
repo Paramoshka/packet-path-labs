@@ -1,0 +1,47 @@
+name: pp35
+topology:
+  defaults:
+    kind: linux
+    image: ${LAB_IMAGE:=alpine:3.22}
+    cmd: sleep infinity
+  nodes:
+    h1:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump curl
+      - ip addr add 10.35.1.10/24 dev eth1
+      - ip route add 10.35.2.0/24 via 10.35.1.1
+    gw1:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump wireguard-tools
+      - ip addr add 10.35.1.1/24 dev eth1
+      - ip addr add 198.51.100.1/30 dev eth2
+      - sh /etc/lab/wg.sh
+      sysctls:
+        net.ipv4.ip_forward: 1
+      binds:
+      - configs/gw1-wg.sh:/etc/lab/wg.sh:ro
+    gw2:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump wireguard-tools
+      - ip addr add 198.51.100.2/30 dev eth1
+      - ip addr add 10.35.2.1/24 dev eth2
+      - sh /etc/lab/wg.sh
+      sysctls:
+        net.ipv4.ip_forward: 1
+      binds:
+      - configs/gw2-wg.sh:/etc/lab/wg.sh:ro
+    h2:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump curl
+      - ip addr add 10.35.2.10/24 dev eth1
+      - ip route add 10.35.1.0/24 via 10.35.2.1
+  links:
+  - endpoints:
+    - h1:eth1
+    - gw1:eth1
+  - endpoints:
+    - gw1:eth2
+    - gw2:eth1
+  - endpoints:
+    - gw2:eth2
+    - h2:eth1

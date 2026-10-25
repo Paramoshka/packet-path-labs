@@ -1,0 +1,61 @@
+name: pp34
+topology:
+  defaults:
+    kind: linux
+    image: ${LAB_IMAGE:=alpine:3.22}
+    cmd: sleep infinity
+  nodes:
+    client:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump curl
+      - ip addr add 10.34.1.2/24 dev eth1
+      - ip addr add 10.34.2.2/24 dev eth2
+      - ip route add 198.18.0.1/32 via 10.34.1.1
+      sysctls:
+        net.ipv4.conf.all.rp_filter: 0
+        net.ipv4.conf.default.rp_filter: 0
+    isp1:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump curl
+      - ip addr add 10.34.1.1/24 dev eth1
+      - ip addr add 10.34.3.1/30 dev eth2
+      - ip route add 198.18.0.1/32 via 10.34.3.2
+      sysctls:
+        net.ipv4.ip_forward: 1
+        net.ipv4.conf.all.rp_filter: 0
+        net.ipv4.conf.default.rp_filter: 0
+    isp2:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump curl
+      - ip addr add 10.34.2.1/24 dev eth1
+      - ip addr add 10.34.4.1/30 dev eth2
+      - ip route add 10.34.1.0/24 via 10.34.2.2
+      - ip route add 198.18.0.1/32 via 10.34.4.2
+      sysctls:
+        net.ipv4.ip_forward: 1
+        net.ipv4.conf.all.rp_filter: 0
+        net.ipv4.conf.default.rp_filter: 0
+    server:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump
+      - ip addr add 10.34.3.2/30 dev eth1
+      - ip addr add 10.34.4.2/30 dev eth2
+      - ip addr add 198.18.0.1/32 dev lo
+      - ip route add 10.34.1.0/24 via 10.34.3.1
+      - ip route add 10.34.2.0/24 via 10.34.4.1
+      sysctls:
+        net.ipv4.conf.all.rp_filter: 0
+        net.ipv4.conf.default.rp_filter: 0
+  links:
+  - endpoints:
+    - client:eth1
+    - isp1:eth1
+  - endpoints:
+    - client:eth2
+    - isp2:eth1
+  - endpoints:
+    - isp1:eth2
+    - server:eth1
+  - endpoints:
+    - isp2:eth2
+    - server:eth2
