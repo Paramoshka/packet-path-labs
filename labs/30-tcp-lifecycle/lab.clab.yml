@@ -1,0 +1,21 @@
+name: pp30
+topology:
+  defaults:
+    kind: linux
+    image: ${LAB_IMAGE:=alpine:3.22}
+    cmd: sleep infinity
+  nodes:
+    client:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump curl
+      - ip addr add 10.30.0.1/24 dev eth1
+    server:
+      exec:
+      - apk add --no-cache iproute2 iputils tcpdump python3 iptables
+      - ip addr add 10.30.0.2/24 dev eth1
+      - sh -c 'mkdir -p /www; echo packet-path-labs > /www/index.html; nohup python3 -m http.server 8080 --directory
+        /www > /tmp/http.log 2>&1 < /dev/null &'
+  links:
+  - endpoints:
+    - client:eth1
+    - server:eth1

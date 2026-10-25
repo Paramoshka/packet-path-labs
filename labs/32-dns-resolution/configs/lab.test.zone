@@ -1,0 +1,6 @@
+$TTL 30
+@ IN SOA ns.lab.test. hostmaster.lab.test. (1 60 30 3600 30)
+  IN NS ns.lab.test.
+ns IN A 10.32.1.2
+app IN A 192.0.2.80
+www IN CNAME app.lab.test.
