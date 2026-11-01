@@ -5,7 +5,10 @@ Compare two major BGP policy attributes. Local Preference is internal policy; ME
 ## Topology
 
 ```text
-up1(AS65100) -- edge1(AS65000) ==iBGP== edge2(AS65000) -- up2(AS65100)
+up1(AS65100) --eBGP-- edge1(AS65000) ==iBGP== edge2(AS65000) --eBGP-- up2(AS65100)
+
+up1 -> edge1: announces 203.0.113.0/24 with outbound MED 50
+up2 -> edge2: announces 203.0.113.0/24 with outbound MED 200
 ```
 
 ## Run
@@ -25,5 +28,4 @@ sudo containerlab destroy -t lab.clab.yml
 
 - `docker exec clab-pp06-edge1 vtysh -c "show bgp ipv4 unicast 203.0.113.0/24"`
 - `docker exec clab-pp06-edge2 vtysh -c "show bgp ipv4 unicast 203.0.113.0/24"`
-
 
