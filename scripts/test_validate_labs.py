@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 import yaml
-from validate_labs import UniqueLoader, validate
+from validate_labs import UniqueLoader, check_readme_media, validate
 
 
 class ValidateLabsTests(unittest.TestCase):
@@ -60,6 +60,35 @@ class ValidateLabsTests(unittest.TestCase):
     def test_duplicate_yaml_key(self):
         with self.assertRaisesRegex(ValueError, 'duplicate YAML key'):
             yaml.load('name: one\nname: two\n', Loader=UniqueLoader)
+
+    def test_animation_scenario_is_validated(self):
+        (self.root / 'animation.yml').write_text(yaml.safe_dump({
+            'title': 'bad', 'steps': [{'text': 'x', 'packets': [
+                {'from': 'a', 'to': 'ghost'}]}]}))
+        with self.assertRaisesRegex(ValueError, 'unknown node'):
+            self.check()
+
+    def test_broken_img_src_rejected(self):
+        path = self.root / 'README.md'
+        path.write_text('<img src="missing.svg">\n')
+        with self.assertRaisesRegex(SystemExit, 'broken local image'):
+            check_readme_media(path)
+
+    def test_broken_picture_srcset_rejected(self):
+        path = self.root / 'README.md'
+        path.write_text('<picture><source media="(prefers-color-scheme: dark)" '
+                        'srcset="missing.dark.svg"><img src="ok.svg"></picture>\n')
+        (self.root / 'ok.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>\n')
+        with self.assertRaisesRegex(SystemExit, 'broken local image'):
+            check_readme_media(path)
+
+    def test_valid_picture_passes(self):
+        path = self.root / 'README.md'
+        for name in ('ok.light.svg', 'ok.dark.svg'):
+            (self.root / name).write_text('<svg xmlns="http://www.w3.org/2000/svg"/>\n')
+        path.write_text('<picture><source media="(prefers-color-scheme: dark)" '
+                        'srcset="ok.dark.svg"><img src="ok.light.svg"></picture>\n')
+        check_readme_media(path)
 
 
 if __name__ == '__main__':

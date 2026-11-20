@@ -1,0 +1,35 @@
+title: eBGP underlay with ECMP paths
+iface_labels: false
+layout:
+  rows:
+    - [spine1, spine2]
+    - [leaf1, leaf2, leaf3, leaf4]
+  x: {spine1: 240, spine2: 560}
+nodes:
+  spine1: {sub: AS 65000}
+  spine2: {sub: AS 65000}
+  leaf1: {sub: 'AS 65101 · 10.1.0.0/24'}
+  leaf2: {sub: 'AS 65102 · 10.2.0.0/24'}
+  leaf3: {sub: 'AS 65103 · 10.3.0.0/24'}
+  leaf4: {sub: 'AS 65104 · 10.4.0.0/24'}
+steps:
+  - text: leaf1 advertises 10.1.0.0/24 to both spines over eBGP (AS 65101 → AS 65000).
+    packets:
+      - {from: leaf1, to: spine1, kind: bgp, label: 'UPDATE 10.1.0.0/24', dur: 1.6}
+      - {from: leaf1, to: spine2, kind: bgp, label: 'UPDATE 10.1.0.0/24', delay: 0.3, dur: 1.6}
+  - text: 'Spines re-advertise to every leaf; leaf3 installs two equal-cost paths (maximum-paths 2).'
+    packets:
+      - {from: spine1, to: leaf3, kind: bgp, label: 'UPDATE 10.1.0.0/24', dur: 1.6}
+      - {from: spine2, to: leaf3, kind: bgp, label: 'UPDATE 10.1.0.0/24', delay: 0.3, dur: 1.6}
+  - text: A flow from leaf1 to 10.3.0.0/24 hashes onto the path via spine1.
+    packets:
+      - legs:
+          - {from: leaf1, to: spine1, kind: tcp, label: 'flow 1 → 10.3.0.0/24', dur: 1.4}
+          - {from: spine1, to: leaf3, kind: tcp, dur: 1.4}
+  - text: 'A different flow hashes onto spine2: per-flow ECMP keeps both uplinks active.'
+    packets:
+      - legs:
+          - {from: leaf1, to: spine2, kind: udp, label: 'flow 2 → 10.3.0.0/24', dur: 1.4}
+          - {from: spine2, to: leaf3, kind: udp, dur: 1.4}
+badges:
+  - {node: leaf3, text: 'ECMP: 2 paths', kind: tcp, steps: [2, 4]}

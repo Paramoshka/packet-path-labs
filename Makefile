@@ -1,7 +1,7 @@
 LAB ?=
 TOPO := $(firstword $(wildcard labs/$(LAB)/*.clab.yml))
 
-.PHONY: list up down inspect check
+.PHONY: list up down inspect check animations
 
 list:
 	@find labs -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort
@@ -23,4 +23,8 @@ inspect:
 
 check:
 	python3 scripts/validate_labs.py
+	python3 scripts/gen_animations.py --check
 	python3 -m unittest discover -s scripts -p 'test_*.py'
+
+animations:
+	python3 scripts/gen_animations.py

@@ -10,6 +10,13 @@ Prerequisites: labs 01–02; lab 21 provides optional firewall background.
 A small HTTP server listens on TCP/8080. Nothing listens on TCP/8081.
 Management eth0 is not part of the experiment.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: TCP three-way handshake, HTTP exchange, FIN close, RST on a closed port and SYN retries against a dropped port" src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. In one host terminal capture `docker exec clab-pp30-server tcpdump -ni eth1 -nn 'tcp port 8080 or tcp port 8081'`.

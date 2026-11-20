@@ -1,0 +1,22 @@
+title: ARP resolution, then ICMP
+links:
+  - between: [pc1, pc2]
+    label: 10.0.0.0/24
+nodes:
+  pc1: {sub: 10.0.0.1/24}
+  pc2: {sub: 10.0.0.2/24}
+steps:
+  - text: pc1 has no neighbor entry for 10.0.0.2, so it broadcasts an ARP request.
+    packets:
+      - {from: pc1, to: pc2, kind: arp, label: 'who-has 10.0.0.2?', dur: 2.0}
+  - text: pc2 recognizes its own IP and answers unicast with its MAC address.
+    packets:
+      - {from: pc2, to: pc1, kind: arp, label: 'is-at 02:42:0a:00:00:02', dur: 2.0}
+  - text: The neighbor cache is REACHABLE; the ICMP echo request now travels in Ethernet.
+    packets:
+      - {from: pc1, to: pc2, kind: icmp, label: ICMP echo request, dur: 1.8}
+  - text: pc2 returns the echo reply. Both directions use the ARP-learned MAC.
+    packets:
+      - {from: pc2, to: pc1, kind: icmp, label: ICMP echo reply, dur: 1.8}
+badges:
+  - {node: pc1, text: neigh REACHABLE, kind: icmp, steps: [2, 4]}

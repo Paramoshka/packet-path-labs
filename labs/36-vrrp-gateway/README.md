@@ -10,6 +10,13 @@ Client `10.36.0.10` uses VIP `10.36.0.1`; server `10.36.1.10` uses VIP
 Two synchronized VRRP instances keep both VIPs on the same active gateway.
 With both healthy, gw1's priority 150 beats gw2's 100.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: traffic flows via MASTER gw1, keepalived stops, gw2 takes both VIPs with gratuitous ARP, traffic recovers, then gw1 preempts" src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. Inspect `ip -4 addr` on both gateways. After election, both VIPs should be

@@ -6,6 +6,8 @@ import subprocess
 
 import yaml
 
+from gen_animations import load_scenario
+
 
 class UniqueLoader(yaml.SafeLoader):
     pass
@@ -59,7 +61,19 @@ def validate(path):
                 raise ValueError(f'{name}: missing bind source: {source}')
     if not (path.parent / 'README.md').is_file():
         raise ValueError('missing README.md')
+    if (path.parent / 'animation.yml').is_file():
+        load_scenario(path.parent)
     return data['name']
+
+
+def check_readme_media(path):
+    """Local <img src> / <source srcset> references must resolve."""
+    for tag in re.findall(r'<(?:img|source)\b[^>]*>', path.read_text()):
+        for attr in re.findall(r'(?:src|srcset)="([^"]+)"', tag):
+            for candidate in attr.split(','):
+                target = candidate.strip().split()[0]
+                if '://' not in target and not (path.parent / target).exists():
+                    raise SystemExit(f'{path}: broken local image: {target}')
 
 
 def main():
@@ -84,6 +98,7 @@ def main():
         for target in re.findall(r'\]\(([^)#]+)(?:#[^)]*)?\)', path.read_text()):
             if '://' not in target and not (path.parent / target).exists():
                 raise SystemExit(f'{path}: broken local link: {target}')
+        check_readme_media(path)
     print(f'Validated {len(paths)} topologies, index entries, bind sources, links and shell syntax.')
 
 

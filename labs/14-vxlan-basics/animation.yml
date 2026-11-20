@@ -1,0 +1,28 @@
+title: VXLAN encapsulation over an L3 underlay
+iface_labels: false
+links:
+  - between: [h1, vtep1]
+    label: 10.10.10.0/24
+  - between: [vtep1, vtep2]
+    label: underlay 192.0.2.0/30
+nodes:
+  h1: {sub: 10.10.10.1/24}
+  vtep1: {sub: [VTEP · VNI 100, 192.0.2.1/30]}
+  vtep2: {sub: [VTEP · VNI 100, 192.0.2.2/30]}
+  h2: {sub: 10.10.10.2/24}
+steps:
+  - text: h1 sends a plain Ethernet frame; h2 sits in the same subnet 10.10.10.0/24.
+    packets:
+      - {from: h1, to: vtep1, kind: icmp, label: ICMP echo request, dur: 1.4}
+  - text: 'vtep1 encapsulates: outer UDP/4789 with VNI 100 crosses the L3 underlay.'
+    packets:
+      - {from: vtep1, to: vtep2, kind: vxlan, label: 'UDP/4789 · VNI 100', encap: true, pulse: true, dur: 2.2}
+  - text: vtep2 decapsulates and bridges the original frame to h2.
+    packets:
+      - {from: vtep2, to: h2, kind: icmp, label: ICMP echo request, pulse: true, dur: 1.4}
+  - text: The reply takes the same path back, encapsulated again between the VTEPs.
+    packets:
+      - legs:
+          - {from: h2, to: vtep2, kind: icmp, label: ICMP echo reply, dur: 1.2}
+          - {from: vtep2, to: vtep1, kind: vxlan, label: 'UDP/4789 · VNI 100', encap: true, pulse: true, dur: 1.8}
+          - {from: vtep1, to: h1, kind: icmp, label: ICMP echo reply, pulse: true, dur: 1.2}

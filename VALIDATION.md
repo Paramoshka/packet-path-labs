@@ -16,6 +16,12 @@ unit tests include missing mounts, unknown/reused interfaces, accidental eth0
 links, malformed command types and duplicate YAML keys. These checks do not
 replace deployment. The new inline startup commands were also shell syntax checked.
 
+Packet-path animations (`animation.yml` → `packet-path.*.svg`) are checked
+offline too: scenario nodes/legs must exist in the topology, badge and failure
+windows must reference real steps, README image references must resolve, and
+committed SVGs must match a fresh generation. The animations illustrate the
+expected protocol behavior; they are not runtime evidence.
+
 ## Runtime environment
 
 Validation used Docker 29.9.2 on Linux, Containerlab 0.78.2 (container image),
