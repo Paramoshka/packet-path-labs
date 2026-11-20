@@ -1,0 +1,32 @@
+title: WireGuard site-to-site tunnel
+iface_labels: false
+links:
+  - between: [h1, gw1]
+    label: 10.35.1.0/24
+  - between: [gw1, gw2]
+    label: WAN 198.51.100.0/30
+  - between: [gw2, h2]
+    label: 10.35.2.0/24
+nodes:
+  h1: {sub: 10.35.1.10/24}
+  gw1: {sub: ['10.35.1.1 · 198.51.100.1', 'wg0 10.35.255.1/30']}
+  gw2: {sub: ['198.51.100.2 · 10.35.2.1', 'wg0 10.35.255.2/30']}
+  h2: {sub: 10.35.2.10/24}
+steps:
+  - text: h1 pings 10.35.2.10 across sites. The LAN frame is plaintext; gw1 routes 10.35.2.0/24 into wg0.
+    packets:
+      - {from: h1, to: gw1, kind: icmp, label: ICMP echo request, dur: 1.2}
+  - text: 'gw1 encrypts the whole inner IP packet: outer UDP/51820 to endpoint 198.51.100.2 crosses the WAN.'
+    packets:
+      - {from: gw1, to: gw2, kind: udp, label: 'WG udp/51820', encap: true, pulse: true, dur: 2.0}
+  - text: gw2 decrypts, validates the source against AllowedIPs, and forwards the inner packet to h2 on its LAN.
+    packets:
+      - {from: gw2, to: h2, kind: icmp, label: ICMP echo request, pulse: true, dur: 1.2}
+  - text: The reply re-encrypts between gateways; h1 sees plain ICMP. UDP/51820 overhead is why wg0 uses MTU 1420.
+    packets:
+      - legs:
+          - {from: h2, to: gw2, kind: icmp, label: ICMP echo reply, dur: 1.0}
+          - {from: gw2, to: gw1, kind: udp, label: 'WG udp/51820', encap: true, pulse: true, dur: 1.8}
+          - {from: gw1, to: h1, kind: icmp, label: ICMP echo reply, pulse: true, dur: 1.0}
+badges:
+  - {node: gw1, text: 'wg show: handshake OK', kind: udp, steps: [1, 4]}

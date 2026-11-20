@@ -1,0 +1,46 @@
+title: Link failure, LSA flood, SPF convergence
+layout:
+  rows:
+    - [r1]
+    - [r4, r2]
+    - [r3]
+  x: {r4: 180, r2: 620}
+links:
+  - between: [r2, r3]
+    label: 10.0.23.0/30
+  - between: [r3, r4]
+    label: 10.0.34.0/30
+  - between: [r4, r1]
+    label: 10.0.14.0/30
+nodes:
+  r1: {sub: 'lo 1.1.1.1/32'}
+  r2: {sub: 'lo 2.2.2.2/32'}
+  r3: {sub: 'lo 3.3.3.3/32'}
+  r4: {sub: 'lo 4.4.4.4/32'}
+steps:
+  - text: Both paths to 3.3.3.3/32 cost two hops; this flow rides the path r1 → r2 → r3.
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMP → 3.3.3.3', dur: 1.2}
+          - {from: r2, to: r3, kind: icmp, dur: 1.2}
+  - text: 'The r1–r2 link fails: the adjacency drops and both routers originate new router-LSAs.'
+    dur: 1.6
+  - text: r1 and r2 flood updated LSAs describing the lost link to their surviving neighbors.
+    packets:
+      - {from: r1, to: r4, kind: ospf, label: LS Update, dur: 1.2}
+      - {from: r2, to: r3, kind: ospf, label: LS Update, delay: 0.3, dur: 1.2}
+  - text: The LSAs propagate around the ring; every router rebuilds the LSDB and reruns SPF.
+    packets:
+      - {from: r3, to: r4, kind: ospf, label: LS Update, dur: 1.2}
+      - {from: r4, to: r1, kind: ospf, label: LS Update, delay: 1.7, dur: 1.2}
+  - text: SPF removes the via-r2 path; traffic converges onto the backup r1 → r4 → r3.
+    packets:
+      - legs:
+          - {from: r1, to: r4, kind: icmp, label: 'ICMP → 3.3.3.3', dur: 1.2}
+          - {from: r4, to: r3, kind: icmp, dur: 1.2}
+badges:
+  - {node: r1, text: next-hop r2, kind: icmp, steps: [0, 1]}
+  - {node: r1, text: SPF rerun, kind: ospf, steps: [3, 4]}
+  - {node: r1, text: next-hop r4, kind: icmp, steps: [4, 5]}
+link_down:
+  - {link: [r1, r2], steps: [1, 5]}

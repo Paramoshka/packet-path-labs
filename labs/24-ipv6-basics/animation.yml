@@ -1,0 +1,29 @@
+title: SLAAC router discovery, then NDP
+links:
+  - between: [h1, h2]
+    label: 2001:db8:1::/64
+nodes:
+  h1: {sub: '2001:db8:1::1/64'}
+  h2: {sub: '2001:db8:1::2/64'}
+steps:
+  - text: With dnsmasq RA enabled on h1, h2 solicits routers with an RS to the all-routers group ff02::2.
+    packets:
+      - {from: h2, to: h1, kind: icmp, label: 'RS → ff02::2 (all-routers)', dur: 1.4}
+  - text: 'h1 answers with an RA: prefix 2001:db8:24::/64 for SLAAC, plus a default route via its link-local.'
+    packets:
+      - {from: h1, to: h2, kind: icmp, label: 'RA: prefix 2001:db8:24::/64', dur: 1.6}
+  - text: h2 runs DAD on its tentative SLAAC address; no NA answers the NS, so the address is unique.
+    packets:
+      - {from: h2, to: h1, kind: icmp, label: 'DAD NS: tentative SLAAC addr', dur: 1.4}
+  - text: Before pinging, h1 resolves 2001:db8:1::2 with NS/NA — NDP replaces ARP using ICMPv6.
+    packets:
+      - {from: h1, to: h2, kind: icmp, label: 'NS: who has 2001:db8:1::2?', dur: 1.4}
+      - {from: h2, to: h1, kind: icmp, label: "NA: h2's MAC for 2001:db8:1::2", delay: 1.9, dur: 1.4}
+  - text: ICMPv6 echo flows over the NDP-learned MAC; the static 2001:db8:1::/64 baseline still works.
+    packets:
+      - {from: h1, to: h2, kind: icmp, label: 'ICMPv6 echo → 2001:db8:1::2', dur: 1.6}
+      - {from: h2, to: h1, kind: icmp, label: ICMPv6 echo reply, delay: 2.1, dur: 1.6}
+badges:
+  - {node: h2, text: 'SLAAC 2001:db8:24::/64', kind: icmp, steps: [1, 5]}
+  - {node: h2, text: default route via h1 (RA), kind: icmp, steps: [1, 5], slot: 1}
+  - {node: h1, text: neigh REACHABLE, kind: icmp, steps: [4, 5]}

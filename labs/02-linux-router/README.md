@@ -8,6 +8,13 @@ Route packets between two subnets and watch L2 headers change while L3 source/de
 pc1 -- 10.0.1.0/24 -- r1 -- 10.0.2.0/24 -- pc2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: pc1 pings pc2 across router r1; each hop rewrites MACs and drops TTL by one while IPs stay fixed; with ip_forward off the packet dies at r1." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

@@ -11,6 +11,13 @@ up1 -> edge1: announces 203.0.113.0/24 with outbound MED 50
 up2 -> edge2: announces 203.0.113.0/24 with outbound MED 200
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: MED 50 vs 200 for 203.0.113.0/24; LOCAL_PREF 200 on edge2 wins first, exit via up2; removing it lets MED 50 flip the exit to up1." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

@@ -1,0 +1,40 @@
+title: BGP EVPN programs the VXLAN FDB
+iface_labels: false
+links:
+  - between: [h1, leaf1]
+    label: 10.10.10.0/24
+  - between: [leaf1, leaf2]
+    label: underlay 10.0.12.0/30
+  - between: [leaf2, h2]
+    label: 10.10.10.0/24
+nodes:
+  h1: {sub: 10.10.10.11/24}
+  leaf1: {sub: ['AS 65000 · VNI 100', lo 10.255.0.1]}
+  leaf2: {sub: ['AS 65000 · VNI 100', lo 10.255.0.2]}
+  h2: {sub: 10.10.10.22/24}
+steps:
+  - text: iBGP EVPN (AS 65000) comes up over loopbacks; type-3 routes announce each leaf's VNI 100 membership.
+    packets:
+      - {from: leaf1, to: leaf2, kind: bgp, label: 'EVPN type-3: VNI 100', dur: 1.6}
+      - {from: leaf2, to: leaf1, kind: bgp, label: 'EVPN type-3: VNI 100', delay: 0.4, dur: 1.6}
+  - text: The first ARP from h1/h2 lets each leaf learn its local MAC; EVPN type-2 routes then carry MAC/IP + VNI.
+    packets:
+      - {from: h1, to: leaf1, kind: arp, label: h1 ARP request, dur: 0.9}
+      - {from: leaf1, to: leaf2, kind: bgp, label: 'type-2: h1 MAC/IP', delay: 1.6, dur: 1.8, pulse: true}
+      - {from: h2, to: leaf2, kind: arp, label: h2 ARP request, delay: 0.3, dur: 0.9}
+      - {from: leaf2, to: leaf1, kind: bgp, label: 'type-2: h2 MAC/IP', delay: 1.9, dur: 1.8, pulse: true}
+  - text: 'h1 pings h2: leaf1 already knows the h2 MAC from EVPN, so the frame is unicast into VXLAN — no flooding.'
+    packets:
+      - legs:
+          - {from: h1, to: leaf1, kind: icmp, label: ICMP echo request, dur: 1.0}
+          - {from: leaf1, to: leaf2, kind: vxlan, label: 'UDP/4789 · VNI 100', encap: true, pulse: true, dur: 2.0}
+          - {from: leaf2, to: h2, kind: icmp, dur: 1.0, pulse: true}
+  - text: The reply returns the same way; FDB entries came from BGP (nolearning), not from data-plane flooding.
+    packets:
+      - legs:
+          - {from: h2, to: leaf2, kind: icmp, label: ICMP echo reply, dur: 0.9}
+          - {from: leaf2, to: leaf1, kind: vxlan, label: 'UDP/4789 · VNI 100', encap: true, pulse: true, dur: 1.6}
+          - {from: leaf1, to: h1, kind: icmp, dur: 0.9, pulse: true}
+badges:
+  - {node: leaf1, text: 'FDB: h2 → 10.255.0.2', kind: vxlan, steps: [2, 4]}
+  - {node: leaf2, text: 'FDB: h1 → 10.255.0.1', kind: vxlan, steps: [2, 4]}

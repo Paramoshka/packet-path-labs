@@ -8,6 +8,13 @@ Use three autonomous systems to study BGP policy and path propagation.
 AS65001 r1 ---- AS65002 r2 ---- AS65003 r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: eBGP sessions over TCP/179 across AS 65001-65003; UPDATEs grow the AS_PATH at each hop, then ICMP follows the BGP route." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

@@ -1,0 +1,33 @@
+title: OSPFv3 adjacencies and IPv6 forwarding
+links:
+  - between: [r1, r2]
+    label: '2001:db8:12::/64'
+  - between: [r2, r3]
+    label: '2001:db8:23::/64'
+nodes:
+  r1: {sub: ['lo 2001:db8:1::1/128', 'router-id 1.1.1.1']}
+  r2: {sub: ['lo 2001:db8:2::2/128', 'router-id 2.2.2.2']}
+  r3: {sub: ['lo 2001:db8:3::3/128', 'router-id 3.3.3.3']}
+steps:
+  - text: OSPFv3 hellos use link-local sources and the ff02::5 multicast; neighbors form per interface.
+    packets:
+      - {from: r1, to: r2, kind: ospf, label: 'Hello (link-local → ff02::5)', dur: 1.0}
+      - {from: r2, to: r3, kind: ospf, label: 'Hello (link-local → ff02::5)', delay: 0.3, dur: 1.0}
+  - text: LSAs flood area 0.0.0.0; OSPFv3 carries prefixes in Intra-Area-Prefix LSAs, not router-LSAs.
+    packets:
+      - {from: r1, to: r2, kind: ospf, label: 'prefix LSA 2001:db8:1::1/128', dur: 1.2}
+      - {from: r2, to: r3, kind: ospf, label: 'prefix LSA 2001:db8:1::1/128', delay: 1.6, dur: 1.2}
+  - text: Every router runs SPF on the synced LSDB; r3 installs 2001:db8:1::1/128 via r2's link-local.
+    dur: 1.4
+  - text: r1 pings r3's loopback 2001:db8:3::3; the echo follows the SPF path through r2.
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMPv6 echo → 2001:db8:3::3', dur: 1.2}
+          - {from: r2, to: r3, kind: icmp, dur: 1.2}
+  - text: The reply returns along the same area-0 path; OSPFv3 next-hops are link-local addresses.
+    packets:
+      - legs:
+          - {from: r3, to: r2, kind: icmp, label: ICMPv6 echo reply, dur: 1.2}
+          - {from: r2, to: r1, kind: icmp, dur: 1.2}
+badges:
+  - {node: r3, text: '2001:db8:1::1 via r2', kind: ospf, steps: [2, 5]}

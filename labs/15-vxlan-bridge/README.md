@@ -8,6 +8,13 @@ Add multiple endpoints behind each VTEP and study MAC learning in the bridge FDB
 h1a,h1b -- vtep1 ===== VXLAN ===== vtep2 -- h2a,h2b
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: unknown unicast floods local ports and the VNI 100 tunnel; once FDB entries are learned, frames are unicast between vtep1 and vtep2" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

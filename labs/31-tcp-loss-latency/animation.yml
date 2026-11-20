@@ -1,0 +1,62 @@
+title: TCP under netem loss and latency
+links:
+  - between: [h1, r1]
+    label: 10.31.1.0/24
+  - between: [r1, h2]
+    label: 10.31.2.0/24
+nodes:
+  h1: {sub: [10.31.1.2/24, iperf3 client]}
+  r1: {sub: ['10.31.1.1 · 10.31.2.1', 'router · netem eth2']}
+  h2: {sub: [10.31.2.2/24, iperf3 server]}
+steps:
+  - text: 'Baseline: iperf3 data crosses r1 with low RTT; ACKs return quickly and the congestion window grows.'
+    pause: 0.4
+    hold: 0.7
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: tcp, label: 'iperf3 data seg 1-3', dur: 0.8}
+          - {from: r1, to: h2, kind: tcp, dur: 0.8}
+      - legs:
+          - {from: h2, to: r1, kind: tcp, label: ACK, dur: 0.8}
+          - {from: r1, to: h1, kind: tcp, dur: 0.8}
+        delay: 2.6
+  - text: 'On r1 eth2: tc qdisc replace dev eth2 root netem delay 50ms loss 1% — egress packets delayed, some dropped.'
+    pause: 0.4
+    hold: 0.7
+    dur: 1.0
+  - text: Segment 4 is dropped on r1 eth2. h2 keeps acknowledging the last in-order byte; duplicate ACKs reach h1.
+    pause: 0.4
+    hold: 0.7
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: tcp, label: 'data seg 4', dur: 0.8}
+          - {from: r1, to: h2, kind: rst, label: 'seg 4 (lost)', dur: 1.4}
+      - legs:
+          - {from: h2, to: r1, kind: tcp, label: 'dup ACK ×3', dur: 0.8}
+          - {from: r1, to: h1, kind: tcp, dur: 0.8}
+        delay: 3.4
+  - text: Three dup ACKs trigger fast retransmit before the RTO fires; cwnd is halved and the flow slows down.
+    pause: 0.4
+    hold: 0.7
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: tcp, label: 'seg 4 (retransmit)', dur: 0.8}
+          - {from: r1, to: h2, kind: tcp, dur: 1.2}
+      - legs:
+          - {from: h2, to: r1, kind: tcp, label: ACK, dur: 0.8}
+          - {from: r1, to: h1, kind: tcp, dur: 0.8}
+        delay: 3.0
+  - text: 'tc qdisc del dev eth2 root removes netem: RTT and throughput return toward baseline. Loss, not reachability, hurt TCP.'
+    pause: 0.4
+    hold: 0.7
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: tcp, label: 'data seg 5+', dur: 0.8}
+          - {from: r1, to: h2, kind: tcp, dur: 0.8}
+      - legs:
+          - {from: h2, to: r1, kind: tcp, label: ACK, dur: 0.8}
+          - {from: r1, to: h1, kind: tcp, dur: 0.8}
+        delay: 2.6
+badges:
+  - {node: r1, text: 'netem 50ms · 1% loss', kind: rst, steps: [1, 4]}
+  - {node: h1, text: cwnd halved, kind: tcp, steps: [3, 5]}

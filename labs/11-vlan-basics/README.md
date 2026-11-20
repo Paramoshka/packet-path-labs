@@ -8,6 +8,13 @@ Use a Linux bridge with VLAN filtering to model access ports and inspect the for
 h1 -- access VLAN10 -- sw1 -- access VLAN10 -- h2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: ARP and ICMP flow between h1 and h2 in VLAN 10; after h2's port moves to VLAN 20, h1's ARP gets no reply" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

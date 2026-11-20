@@ -8,6 +8,13 @@ Translate an RFC1918 source address at a Linux router and observe conntrack/stat
 inside 10.0.0.10 -- NAT -- 198.51.100.2 outside
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: inside's ping is SNATed from 10.0.0.10 to 198.51.100.1 at the nat router; the reply matches conntrack ESTABLISHED and is un-NATed back." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

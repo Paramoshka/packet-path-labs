@@ -1,0 +1,33 @@
+title: TCP handshake, close, reset, timeout
+links:
+  - between: [client, server]
+    label: 10.30.0.0/24
+nodes:
+  client: {sub: 10.30.0.1/24}
+  server: {sub: '10.30.0.2/24 · :8080'}
+steps:
+  - text: 'Three-way handshake: SYN, SYN/ACK, ACK synchronize both sequence spaces.'
+    packets:
+      - {from: client, to: server, kind: tcp, label: 'SYN seq=0', dur: 1.3}
+      - {from: server, to: client, kind: tcp, label: 'SYN/ACK seq=0 ack=1', delay: 1.6, dur: 1.3}
+      - {from: client, to: server, kind: tcp, label: 'ACK ack=1', delay: 3.2, dur: 1.2}
+  - text: HTTP over the established connection.
+    packets:
+      - {from: client, to: server, kind: data, label: 'GET /', dur: 1.4}
+      - {from: server, to: client, kind: data, label: '200 OK · packet-path-labs', delay: 1.8, dur: 1.6}
+  - text: 'Orderly close: each side sends FIN and acknowledges the peer''s FIN.'
+    packets:
+      - {from: client, to: server, kind: tcp, label: FIN/ACK, dur: 1.2}
+      - {from: server, to: client, kind: tcp, label: ACK + FIN/ACK, delay: 1.5, dur: 1.2}
+      - {from: client, to: server, kind: tcp, label: ACK, delay: 3.0, dur: 1.2}
+  - text: 'Closed port 8081: the server answers RST immediately — refused, not timed out.'
+    packets:
+      - {from: client, to: server, kind: tcp, label: 'SYN → :8081', dur: 1.3}
+      - {from: server, to: client, kind: rst, label: RST/ACK, delay: 1.6, dur: 1.3}
+  - text: 'Filtered port: iptables DROP silently discards SYNs; retries end in a curl timeout.'
+    packets:
+      - {from: client, to: server, kind: tcp, label: 'SYN → :8080', dur: 1.2}
+      - {from: client, to: server, kind: tcp, label: SYN retry 1, delay: 2.2, dur: 1.2}
+      - {from: client, to: server, kind: tcp, label: SYN retry 2, delay: 4.6, dur: 1.2}
+badges:
+  - {node: server, text: 'INPUT DROP :8080', kind: rst, steps: [4, 5]}

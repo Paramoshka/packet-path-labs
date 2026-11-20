@@ -9,6 +9,13 @@ h1 -- vtep1 ===== UDP/4789 ===== vtep2 -- h2
       192.0.2.1            192.0.2.2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: an ICMP frame is encapsulated into UDP/4789 with VNI 100 at vtep1, decapsulated at vtep2, and the reply returns the same way" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

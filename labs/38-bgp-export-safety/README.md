@@ -12,6 +12,13 @@ origin's prefix from up1. Initially customer exports only its own prefix to up2.
 The up2 import is deliberately permissive so the export failure is observable.
 The isolated documentation prefixes are never connected to real BGP neighbors.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: customer leaks provider prefix 198.51.100.0/24 to up2; prefix-list denies it, maximum-prefix 1 shuts the session; OWN-ONLY export restores it." src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. Inspect customer and up2 BGP tables. Customer knows both prefixes; up2 knows

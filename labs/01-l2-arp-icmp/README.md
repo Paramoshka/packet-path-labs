@@ -8,6 +8,13 @@ Observe the complete local-LAN packet path: ARP resolution first, then ICMP over
 pc1 10.0.0.1/24 -------- 10.0.0.2/24 pc2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: broadcast ARP request, unicast ARP reply, then ICMP echo request and reply between pc1 and pc2" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

@@ -106,6 +106,15 @@ destroying/redeploying **that lab only**. Avoid `docker restart` as a lab reset:
 Containerlab data links may not survive it. WireGuard keys are generated at
 runtime; exchange the new public keys after redeployment.
 
+## Packet-path animations
+
+Lab READMEs embed a looping, theme-aware SVG animation of the lab's main
+packet path: ARP resolution, TCP handshake, VXLAN encapsulation, gateway
+failover, ECMP hashing. The animations are illustrative, generated offline
+from an `animation.yml` scenario next to each topology with `make animations`
+— they are not recordings of live traffic. `make check` verifies that the
+committed SVGs still match their scenarios.
+
 ## Philosophy
 
 Each lab is deliberately small. The topology and a working baseline are provided, but the real exercise is to **break, capture, inspect, modify and explain** the behavior with tools such as `tcpdump`, `ip`, `bridge`, `nft`, `vtysh` and Containerlab.

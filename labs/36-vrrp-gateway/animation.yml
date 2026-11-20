@@ -1,0 +1,67 @@
+title: VRRP gateway failover and preemption
+iface_labels: false
+layout:
+  rows:
+    - [client, lan, gw1, wan, server]
+    - [gw2]
+nodes:
+  client: {sub: 10.36.0.10/24}
+  lan: {sub: bridge br0}
+  wan: {sub: bridge br0}
+  server: {sub: 10.36.1.10/24}
+  gw1: {sub: ['10.36.0.2 · 10.36.1.2', priority 150]}
+  gw2: {sub: ['10.36.0.3 · 10.36.1.3', priority 100]}
+steps:
+  - text: 'Baseline: gw1 is MASTER (priority 150); traffic to VIP 10.36.0.1 flows through gw1.'
+    packets:
+      - {from: gw1, to: lan, kind: vrrp, label: 'VRRP adv prio 150', dur: 0.9}
+      - legs:
+          - {from: client, to: lan, kind: icmp, label: 'ICMP → 10.36.1.10', dur: 0.8}
+          - {from: lan, to: gw1, kind: icmp, dur: 0.8}
+          - {from: gw1, to: wan, kind: icmp, dur: 0.8}
+          - {from: wan, to: server, kind: icmp, dur: 0.8}
+      - legs:
+          - {from: server, to: wan, kind: icmp, label: ICMP reply, dur: 0.8}
+          - {from: wan, to: gw1, kind: icmp, dur: 0.8}
+          - {from: gw1, to: lan, kind: icmp, dur: 0.8}
+          - {from: lan, to: client, kind: icmp, dur: 0.8}
+        delay: 3.6
+  - text: keepalived stops on gw1; VRRP advertisements cease and gw2's master-down timer runs.
+    dur: 1.8
+  - text: gw2 becomes MASTER, takes both VIPs and announces them with gratuitous ARP.
+    packets:
+      - {from: gw2, to: lan, kind: arp, label: 'GARP: VIP .1 is-at gw2', dur: 1.4}
+      - {from: gw2, to: wan, kind: arp, label: 'GARP: VIP .254 is-at gw2', delay: 0.5, dur: 1.4}
+  - text: Traffic recovers through gw2; client and server keep their unchanged VIP routes.
+    packets:
+      - legs:
+          - {from: client, to: lan, kind: icmp, label: 'ICMP → 10.36.1.10', dur: 0.8}
+          - {from: lan, to: gw2, kind: icmp, dur: 0.8}
+          - {from: gw2, to: wan, kind: icmp, dur: 0.8}
+          - {from: wan, to: server, kind: icmp, dur: 0.8}
+      - legs:
+          - {from: server, to: wan, kind: icmp, label: ICMP reply, dur: 0.8}
+          - {from: wan, to: gw2, kind: icmp, dur: 0.8}
+          - {from: gw2, to: lan, kind: icmp, dur: 0.8}
+          - {from: lan, to: client, kind: icmp, dur: 0.8}
+        delay: 3.6
+  - text: 'keepalived restarts on gw1: preemption returns both VIPs to priority 150.'
+    packets:
+      - {from: gw1, to: lan, kind: arp, label: 'GARP: VIP .1 is-at gw1', dur: 1.2}
+      - {from: gw1, to: wan, kind: arp, label: 'GARP: VIP .254 is-at gw1', delay: 0.4, dur: 1.2}
+      - legs:
+          - {from: client, to: lan, kind: icmp, label: 'ICMP via gw1 again', dur: 0.8}
+          - {from: lan, to: gw1, kind: icmp, dur: 0.8}
+          - {from: gw1, to: wan, kind: icmp, dur: 0.8}
+          - {from: wan, to: server, kind: icmp, dur: 0.8}
+        delay: 2.4
+badges:
+  - {node: gw1, text: MASTER · both VIPs, kind: icmp, steps: [0, 1]}
+  - {node: gw2, text: BACKUP, kind: data, steps: [0, 1]}
+  - {node: gw1, text: keepalived stopped, kind: rst, steps: [1, 4]}
+  - {node: gw2, text: master-down timer, kind: ospf, steps: [1, 2]}
+  - {node: gw2, text: MASTER · both VIPs, kind: icmp, steps: [2, 4]}
+  - {node: gw1, text: MASTER · both VIPs, kind: icmp, steps: [4, 5]}
+  - {node: gw2, text: BACKUP (preempted), kind: data, steps: [4, 5]}
+dim:
+  - {node: gw1, steps: [1, 4]}

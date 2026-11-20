@@ -13,6 +13,13 @@ Each gateway has wg0 with a fresh runtime key and tunnel address
 WAN ping should work, cross-site ping should fail. Private keys stay in the
 container; never commit them. Destroy/deploy generates new keys.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: h1's ICMP ping is encrypted at gw1 into WireGuard UDP/51820, crosses the WAN, decrypted at gw2 to h2; the reply returns through the tunnel." src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. Read only `/tmp/wg-public` on each gateway and exchange the public keys.

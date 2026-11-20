@@ -9,6 +9,13 @@ Prerequisites: labs 22 and 30.
 
 h2 runs an iperf3 server. The baseline has no artificial impairment.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: iperf3 data and ACKs cross r1; netem 50ms 1% loss on eth2 drops segment 4, dup ACKs trigger fast retransmit with cwnd halved, then recovery." src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. Run `docker exec clab-pp31-h1 iperf3 -c 10.31.2.2 -t 10` and record throughput

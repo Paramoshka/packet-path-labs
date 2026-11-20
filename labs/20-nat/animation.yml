@@ -1,0 +1,26 @@
+title: SNAT and conntrack return traffic
+links:
+  - between: [inside, nat]
+    label: 10.0.0.0/24
+  - between: [nat, outside]
+    label: 198.51.100.0/24
+nodes:
+  inside: {sub: 10.0.0.10/24}
+  nat: {sub: ['10.0.0.1 · 198.51.100.1', 'MASQUERADE on eth2']}
+  outside: {sub: 198.51.100.2/24}
+steps:
+  - text: inside pings 198.51.100.2 with private source 10.0.0.10; the packet goes to its gateway nat.
+    packets:
+      - {from: inside, to: nat, kind: icmp, label: 'echo req · src 10.0.0.10', dur: 1.6}
+  - text: MASQUERADE in POSTROUTING rewrites the source to 198.51.100.1 and creates a conntrack entry.
+    packets:
+      - {from: nat, to: outside, kind: icmp, label: 'src 198.51.100.1', pulse: true, dur: 1.8}
+  - text: outside answers to 198.51.100.1 — it never sees the private address.
+    packets:
+      - {from: outside, to: nat, kind: icmp, label: 'reply · dst 198.51.100.1', dur: 1.6}
+  - text: 'The reply matches conntrack state ESTABLISHED, so nat reverses the translation: dst 10.0.0.10.'
+    packets:
+      - {from: nat, to: inside, kind: icmp, label: 'dst 10.0.0.10 · un-NAT', pulse: true, dur: 1.8}
+badges:
+  - {node: nat, text: 'SNAT → 198.51.100.1', kind: tcp, steps: [1, 3]}
+  - {node: nat, text: 'ESTABLISHED · un-NAT', kind: icmp, steps: [3, 4]}

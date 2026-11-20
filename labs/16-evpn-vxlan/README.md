@@ -8,6 +8,13 @@ Replace static VXLAN flood-and-learn control with BGP EVPN MAC/IP route exchange
 h1 -- leaf1 ===== BGP EVPN / VXLAN ===== leaf2 -- h2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: EVPN type-3 and type-2 routes exchange VNI 100 and MAC/IP over iBGP, then ICMP crosses between leaf1 and leaf2 encapsulated in VXLAN" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

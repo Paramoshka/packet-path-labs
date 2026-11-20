@@ -12,6 +12,13 @@ r1        r4
       r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: r1 reaches 4.4.4.4/32 via cost 10 through r2; raising eth1 cost to 60 floods a new LSA and flips the path to cost 50 via r3, then back." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

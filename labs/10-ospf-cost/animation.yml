@@ -1,0 +1,49 @@
+title: Interface cost flips the SPF path
+layout:
+  rows:
+    - [r2]
+    - [r1, r4]
+    - [r3]
+  x: {r1: 180, r4: 620}
+links:
+  - between: [r1, r2]
+    label: 10.0.12.0/30
+  - between: [r1, r3]
+    label: 10.0.13.0/30
+  - between: [r2, r4]
+    label: 10.0.24.0/30
+  - between: [r3, r4]
+    label: 10.0.34.0/30
+nodes:
+  r1: {sub: '10.0.12.1 · 10.0.13.1'}
+  r2: {sub: '10.0.12.2 · 10.0.24.1'}
+  r3: {sub: '10.0.13.2 · 10.0.34.1'}
+  r4: {sub: 'lo 4.4.4.4/32'}
+steps:
+  - text: 'SPF compares path costs: 10 via r2 beats 50 via r3, so r1 reaches 4.4.4.4/32 through r2.'
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMP → 4.4.4.4 · via r2', dur: 1.2}
+          - {from: r2, to: r4, kind: icmp, dur: 1.2}
+  - text: 'Live change: ip ospf cost 60 on r1 eth1; r1 floods a new router-LSA with the higher metric.'
+    packets:
+      - {from: r1, to: r2, kind: ospf, label: 'LS Update · cost 60', dur: 1.2}
+      - {from: r1, to: r3, kind: ospf, label: 'LS Update · cost 60', delay: 0.3, dur: 1.2}
+  - text: 'SPF reruns: 60 via r2 now loses to 50 via r3 — the route flips to the lower path.'
+    packets:
+      - legs:
+          - {from: r1, to: r3, kind: icmp, label: 'ICMP → 4.4.4.4 · via r3', dur: 1.2}
+          - {from: r3, to: r4, kind: icmp, dur: 1.2}
+  - text: 'Restore cost 10 and the path returns: OSPF policy lives in the LSDB, not in the wiring.'
+    packets:
+      - {from: r1, to: r2, kind: ospf, label: 'LS Update · cost 10', dur: 1.0}
+      - {from: r1, to: r3, kind: ospf, label: 'LS Update · cost 10', delay: 0.25, dur: 1.0}
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMP → 4.4.4.4 · via r2', dur: 1.2}
+          - {from: r2, to: r4, kind: icmp, dur: 1.2}
+        delay: 2.4
+badges:
+  - {node: r1, text: 'eth1 cost 10', kind: ospf, steps: [0, 1]}
+  - {node: r1, text: 'eth1 cost 60', kind: ospf, steps: [1, 3]}
+  - {node: r1, text: 'eth1 cost 10', kind: ospf, steps: [3, 4]}
+  - {node: r1, text: 'eth2 cost 50', kind: ospf, steps: [0, 4], slot: 1}

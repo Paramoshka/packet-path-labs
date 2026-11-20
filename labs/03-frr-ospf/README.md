@@ -9,6 +9,13 @@ r1 ---- r2 ---- r3
 1.1.1.1  2.2.2.2  3.3.3.3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: OSPF hellos and LSDB exchange between r1, r2, r3, then an ICMP ping to 3.3.3.3 following the SPF route via r2 and back." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

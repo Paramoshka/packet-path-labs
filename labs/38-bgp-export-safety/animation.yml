@@ -1,0 +1,50 @@
+title: BGP route leak and prefix limits
+iface_labels: false
+layout:
+  rows:
+    - [origin, up1]
+    - [customer, up2]
+  x: {origin: 160, up1: 640, customer: 160, up2: 640}
+links:
+  - between: [origin, up1]
+    label: 10.38.12.0/30
+  - between: [up1, customer]
+    label: 10.38.23.0/30
+  - between: [customer, up2]
+    label: 10.38.34.0/30
+nodes:
+  origin: {sub: [AS 65004, 198.51.100.0/24]}
+  up1: {sub: [AS 65002, provider]}
+  customer: {sub: [AS 65001, 203.0.113.0/24]}
+  up2: {sub: [AS 65003, provider]}
+steps:
+  - text: 'Baseline: customer learns 198.51.100.0/24 from up1 but exports only its own 203.0.113.0/24 to up2 (OWN-ONLY).'
+    packets:
+      - legs:
+          - {from: origin, to: up1, kind: bgp, label: 'UPDATE 198.51.100.0/24', dur: 1.2}
+          - {from: up1, to: customer, kind: bgp, dur: 1.2}
+      - {from: customer, to: up2, kind: bgp, label: 'UPDATE 203.0.113.0/24', delay: 1.0, dur: 1.4}
+  - text: 'Out-map swapped to ALLOW-ALL: up2 learns the provider prefix with AS path 65001 65002 65004 — a route leak.'
+    packets:
+      - {from: customer, to: up2, kind: bgp, label: 'leak 198.51.100.0/24', dur: 1.6}
+  - text: 'Defense 1: an up2 inbound prefix-list permits only 203.0.113.0/24; the leaked UPDATE is discarded on import.'
+    packets:
+      - {from: customer, to: up2, kind: rst, label: leak denied, dur: 1.6}
+      - {from: customer, to: up2, kind: bgp, label: '203.0.113.0/24 OK', delay: 1.2, dur: 1.2}
+  - text: 'Defense 2: permissive import restored, maximum-prefix 1 set. Two accepted prefixes exceed the limit; the session shuts.'
+    packets:
+      - {from: customer, to: up2, kind: bgp, label: 'UPDATE 203.0.113.0/24', dur: 1.0}
+      - {from: customer, to: up2, kind: bgp, label: '198.51.100.0/24 #2', delay: 1.2, dur: 1.0}
+      - {from: up2, to: customer, kind: rst, label: 'NOTIFICATION cease', delay: 2.9, dur: 1.2}
+  - text: 'Repair: restore OWN-ONLY export, then clear the session. One prefix fits the limit — up2 accepts it; keep limit 1.'
+    packets:
+      - {from: customer, to: up2, kind: bgp, label: 'UPDATE 203.0.113.0/24', dur: 1.4}
+badges:
+  - {node: customer, text: export OWN-ONLY, kind: tcp, steps: [0, 1]}
+  - {node: customer, text: map ALLOW-ALL, kind: rst, steps: [1, 4]}
+  - {node: customer, text: OWN-ONLY restored, kind: tcp, steps: [4, 5]}
+  - {node: up2, text: 'prefix-list: own only', kind: tcp, steps: [2, 3], slot: 0}
+  - {node: up2, text: maximum-prefix 1, kind: ospf, steps: [3, 5], slot: 0}
+  - {node: up2, text: session shut down, kind: rst, steps: [3, 4], slot: 1}
+link_down:
+  - {link: [customer, up2], steps: [3, 4]}

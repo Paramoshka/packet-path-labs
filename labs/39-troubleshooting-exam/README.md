@@ -20,6 +20,15 @@ bypasses DNS to test the transport/application independently. For an end-to-end
 DNS test, set client's `/etc/resolv.conf` to `nameserver 10.39.3.53` and use curl
 without `--resolve` (inside the container only).
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: exam scenario C — ping works but r1's FORWARD rule drops the TCP/8080 SYN; evidence isolates the rule, deleting it restores SYN/ACK and 200 OK." src="packet-path.light.svg">
+</picture>
+
+The animation walks exam scenario C; assign scenarios A, B, D or E for a live exam.
+
 ## Exam
 
 Ask a tutor to run one scenario with `sh break.sh A` (A–E) from this directory

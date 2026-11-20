@@ -8,6 +8,13 @@ Build a stateful forwarding firewall: ICMP is allowed, everything else is droppe
 h1 -- fw[nftables] -- h2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: ICMP passes the nftables firewall; a TCP SYN to 8080 hits policy drop; with the permit deleted, ct state established keeps the live flow passing." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

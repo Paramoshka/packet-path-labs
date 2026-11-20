@@ -1,0 +1,40 @@
+title: FIFO vs fq_codel under HTB shaping
+links:
+  - between: [h1, r1]
+    label: 10.37.1.0/24
+  - between: [r1, h2]
+    label: 10.37.2.0/24 · HTB 10mbit
+nodes:
+  h1: {sub: [10.37.1.2/24, iperf3 + ping]}
+  r1: {sub: ['10.37.1.1 · 10.37.2.1', 'HTB + child qdisc eth2']}
+  h2: {sub: [10.37.2.2/24, iperf3 server]}
+steps:
+  - text: HTB on r1 eth2 shapes class 1:10 to 10 Mbit/s; an iperf3 bulk flow fills the bottleneck.
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: tcp, label: iperf3 bulk, dur: 1.0}
+          - {from: r1, to: h2, kind: tcp, dur: 1.6}
+  - text: 'Child qdisc pfifo limit 1000: the ping waits behind bulk backlog on eth2 egress — loaded latency balloons.'
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: tcp, label: iperf3 bulk, dur: 1.0}
+          - {from: r1, to: h2, kind: tcp, label: bulk (queued), dur: 2.0}
+      - legs:
+          - {from: h1, to: r1, kind: icmp, label: ICMP ping, dur: 0.8}
+          - {from: r1, to: h2, kind: icmp, label: ping behind bulk, dur: 2.2}
+        delay: 0.6
+  - text: 'Only the child queue changes: delete pfifo under 1:10 and add fq_codel — the HTB class stays 10 Mbit/s.'
+    dur: 1.4
+  - text: 'fq_codel keeps the ping flow separate from bulk: low latency under the same load. Fair queueing is not a rate limiter.'
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: tcp, label: iperf3 bulk, dur: 1.0}
+          - {from: r1, to: h2, kind: tcp, label: bulk (shaped), dur: 2.0}
+      - legs:
+          - {from: h1, to: r1, kind: icmp, label: ICMP ping, dur: 0.8}
+          - {from: r1, to: h2, kind: icmp, label: ping fast, dur: 0.8}
+        delay: 0.6
+badges:
+  - {node: r1, text: 'HTB 1:10 · 10mbit', kind: data, steps: [0, 4], slot: 0}
+  - {node: r1, text: 'pfifo: ping queued', kind: ospf, steps: [1, 2], slot: 1}
+  - {node: r1, text: 'fq_codel: ping fast', kind: icmp, steps: [3, 4], slot: 1}

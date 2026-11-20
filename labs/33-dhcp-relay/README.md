@@ -10,6 +10,13 @@ Prerequisites: labs 01–02 and 32.
 Only eth0 has an address on client initially. DHCP is scoped to lab interfaces;
 never run these DHCP services on host interfaces or the management network.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: DHCPDISCOVER broadcasts to the relay, which unicasts it to the server with giaddr 10.33.0.1; OFFER, REQUEST and ACK lease 10.33.0.100 to the client." src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. Capture on relay eth1 and eth2 with `tcpdump -ni eth1 -vv 'udp port 67 or udp port 68'`

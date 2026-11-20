@@ -11,6 +11,13 @@ r1 \
   r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: r1 sends an iBGP UPDATE for 1.1.1.1/32 to the route reflector, which reflects it to clients r2 and r3 with ORIGINATOR_ID and CLUSTER_LIST" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

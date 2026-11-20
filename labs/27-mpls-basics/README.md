@@ -8,6 +8,13 @@ Add an MPLS label-forwarding plane on top of an OSPF underlay and inspect LDP la
 r1 ==== MPLS/LDP ==== r2 ==== MPLS/LDP ==== r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animated packet path: OSPF converges, LDP distributes labels, r1 pushes label 100, r2 pops it (PHP), and IPv4 echo reaches r3; reply mirrors it." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

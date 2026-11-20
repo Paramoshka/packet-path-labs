@@ -1,0 +1,31 @@
+title: OSPF adjacency, LSDB, and SPF routes
+links:
+  - between: [r1, r2]
+    label: 10.0.12.0/30
+  - between: [r2, r3]
+    label: 10.0.23.0/30
+nodes:
+  r1: {sub: 'lo 1.1.1.1/32'}
+  r2: {sub: 'lo 2.2.2.2/32'}
+  r3: {sub: 'lo 3.3.3.3/32'}
+steps:
+  - text: OSPF Hello packets (IP protocol 89) discover neighbors on each /30 link.
+    packets:
+      - {from: r1, to: r2, kind: ospf, label: 'Hello → 224.0.0.5', dur: 1.4}
+      - {from: r2, to: r3, kind: ospf, label: 'Hello → 224.0.0.5', delay: 0.4, dur: 1.4}
+  - text: 'Adjacency reaches FULL: DD and LS-Update exchange builds one identical LSDB in area 0.'
+    packets:
+      - {from: r1, to: r2, kind: ospf, label: DD / LS-Update, dur: 1.4}
+      - {from: r2, to: r3, kind: ospf, label: DD / LS-Update, delay: 0.4, dur: 1.4}
+  - text: SPF picks the shortest path to 3.3.3.3/32 — via r2 — and FRR installs it in the Linux FIB.
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMP → 3.3.3.3', dur: 1.2}
+          - {from: r2, to: r3, kind: icmp, dur: 1.2}
+  - text: The echo reply returns along the same SPF path; show ip route ospf matches ip route.
+    packets:
+      - legs:
+          - {from: r3, to: r2, kind: icmp, label: ICMP echo reply, dur: 1.2}
+          - {from: r2, to: r1, kind: icmp, dur: 1.2}
+badges:
+  - {node: r1, text: 'OSPF route via r2', kind: ospf, steps: [2, 4]}

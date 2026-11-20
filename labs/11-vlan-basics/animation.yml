@@ -1,0 +1,36 @@
+title: Same VLAN forwards, cross-VLAN fails
+nodes:
+  h1: {sub: 10.10.10.11/24}
+  sw1: {sub: br0 · vlan_filtering}
+  h2: {sub: 10.10.10.12/24}
+steps:
+  - text: h1 and h2 sit in VLAN 10 on sw1's filtering bridge; h1 broadcasts an ARP request for 10.10.10.12.
+    packets:
+      - legs:
+          - {from: h1, to: sw1, kind: arp, label: 'who-has 10.10.10.12?', dur: 1.0}
+          - {from: sw1, to: h2, kind: arp, dur: 1.0}
+  - text: sw1 floods only inside VLAN 10; h2 answers unicast and the bridge learns both MACs in its FDB.
+    packets:
+      - legs:
+          - {from: h2, to: sw1, kind: arp, label: 'is-at 02:42:0a:0a:0a:0c', dur: 1.0}
+          - {from: sw1, to: h1, kind: arp, dur: 1.0}
+  - text: Same VLAN, same subnet — the ICMP echo crosses sw1 untagged and the reply comes straight back.
+    packets:
+      - legs:
+          - {from: h1, to: sw1, kind: icmp, label: ICMP echo request, dur: 0.8}
+          - {from: sw1, to: h2, kind: icmp, dur: 0.8}
+      - legs:
+          - {from: h2, to: sw1, kind: icmp, label: ICMP echo reply, dur: 0.8}
+          - {from: sw1, to: h1, kind: icmp, dur: 0.8}
+        delay: 2.8
+  - text: "Now move h2's port to VLAN 20: h1 retries ARP, but sw1 floods the request only inside VLAN 10."
+    packets:
+      - {from: h1, to: sw1, kind: arp, label: 'who-has 10.10.10.12?', dur: 1.4}
+  - text: No VLAN 10 member owns that IP, so no reply ever comes back — separate VLANs, separate broadcast domains.
+    dur: 1.8
+badges:
+  - {node: sw1, text: 'VLAN 10: eth1, eth2', kind: data, steps: [0, 3]}
+  - {node: sw1, text: 'eth2 → VLAN 20', kind: udp, steps: [3, 5]}
+  - {node: h1, text: 'no reply: different VLAN', kind: rst, steps: [4, 5]}
+dim:
+  - {node: h2, steps: [3, 5]}

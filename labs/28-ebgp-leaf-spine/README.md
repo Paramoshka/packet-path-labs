@@ -10,6 +10,13 @@ Build a Clos-style IP fabric with two spines and four leaves using eBGP and redu
      leaf1 leaf2 leaf3 leaf4
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: leaf1 advertises its prefix to both spines, leaf3 learns two equal-cost paths, and two flows hash onto spine1 and spine2" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

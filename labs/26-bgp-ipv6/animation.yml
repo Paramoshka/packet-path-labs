@@ -1,0 +1,34 @@
+title: MP-BGP IPv6 unicast route propagation
+links:
+  - between: [r1, r2]
+    label: '2001:db8:12::/64'
+  - between: [r2, r3]
+    label: '2001:db8:23::/64'
+nodes:
+  r1: {sub: ['AS 65001', 'lo 2001:db8:1::1/128']}
+  r2: {sub: ['AS 65002', 'lo 2001:db8:2::2/128']}
+  r3: {sub: ['AS 65003', 'lo 2001:db8:3::3/128']}
+steps:
+  - text: eBGP sessions come up over IPv6 TCP/179 on the 2001:db8:12::/64 and 2001:db8:23::/64 links.
+    packets:
+      - {from: r1, to: r2, kind: bgp, label: 'OPEN · AS 65001 · TCP/179', dur: 1.0}
+      - {from: r2, to: r3, kind: bgp, label: 'OPEN · AS 65002 · TCP/179', delay: 0.3, dur: 1.0}
+  - text: r3 originates 2001:db8:3::3/128 into address-family ipv6 unicast; the UPDATE carries IPv6 NLRI.
+    packets:
+      - {from: r3, to: r2, kind: bgp, label: 'UPDATE 2001:db8:3::3/128', dur: 1.4}
+  - text: 'r2 re-advertises to r1: AS_PATH gains 65002 and the next-hop becomes 2001:db8:12::2.'
+    packets:
+      - {from: r2, to: r1, kind: bgp, label: 'UPDATE · AS_PATH 65002 65003', dur: 1.4}
+  - text: 'r1 pings 2001:db8:3::3: the BGP route resolves via next-hop 2001:db8:12::2, then 2001:db8:23::2.'
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMPv6 echo → 2001:db8:3::3', dur: 1.2}
+          - {from: r2, to: r3, kind: icmp, dur: 1.2}
+  - text: The echo reply follows the reverse path; IPv6 NLRI and next-hop behavior mirror IPv4 BGP.
+    packets:
+      - legs:
+          - {from: r3, to: r2, kind: icmp, label: ICMPv6 echo reply, dur: 1.2}
+          - {from: r2, to: r1, kind: icmp, dur: 1.2}
+badges:
+  - {node: r1, text: 'AS_PATH 65002 65003', kind: bgp, steps: [2, 5]}
+  - {node: r1, text: 'NH 2001:db8:12::2', kind: bgp, steps: [2, 5], slot: 1}

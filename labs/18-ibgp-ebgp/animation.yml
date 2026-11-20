@@ -1,0 +1,34 @@
+title: iBGP next-hop-self over an OSPF core
+iface_labels: false
+nodes:
+  isp1: {sub: [AS 65100, 192.0.2.2/30]}
+  edge1: {sub: ['AS 65000 · lo 1.1.1.1', 192.0.2.1/30]}
+  core: {sub: [OSPF area 0, no BGP]}
+  edge2: {sub: ['AS 65000 · lo 2.2.2.2', 198.51.100.1/30]}
+  isp2: {sub: [AS 65200, 198.51.100.2/30]}
+steps:
+  - text: OSPF area 0 floods loopback and link LSAs, so edge1 and edge2 can reach each other's loopbacks for iBGP.
+    packets:
+      - legs:
+          - {from: edge1, to: core, kind: ospf, label: 'OSPF LSA: 1.1.1.1/32', dur: 1.0}
+          - {from: core, to: edge2, kind: ospf, dur: 1.0}
+  - text: isp1 (AS 65100) advertises 203.0.113.0/24 over eBGP; the next hop is isp1's interface 192.0.2.2.
+    packets:
+      - {from: isp1, to: edge1, kind: bgp, label: 'UPDATE 203.0.113.0/24', dur: 1.6}
+  - text: edge1 re-advertises to edge2 over iBGP with next-hop-self — the next hop becomes edge1's loopback 1.1.1.1.
+    packets:
+      - legs:
+          - {from: edge1, to: core, kind: bgp, label: 'iBGP UPDATE · NH 1.1.1.1', dur: 1.2, pulse: true}
+          - {from: core, to: edge2, kind: bgp, dur: 1.2}
+  - text: Without next-hop-self the next hop would stay 192.0.2.2, a subnet edge2 cannot reach; OSPF resolves 1.1.1.1 instead.
+    dur: 2.2
+  - text: 'A flow to 203.0.113.0/24 now forwards: edge2 → core → edge1 → isp1, following the OSPF-resolved next hop.'
+    packets:
+      - legs:
+          - {from: edge2, to: core, kind: tcp, label: 'flow → 203.0.113.0/24', dur: 1.0}
+          - {from: core, to: edge1, kind: tcp, dur: 1.0}
+          - {from: edge1, to: isp1, kind: tcp, dur: 1.0}
+badges:
+  - {node: edge1, text: 'eBGP: NH 192.0.2.2', kind: bgp, steps: [1, 2]}
+  - {node: edge1, text: 'next-hop-self → 1.1.1.1', kind: bgp, steps: [2, 5]}
+  - {node: edge2, text: 'iBGP: NH 1.1.1.1', kind: bgp, steps: [2, 5]}

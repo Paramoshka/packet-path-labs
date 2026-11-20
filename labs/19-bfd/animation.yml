@@ -1,0 +1,33 @@
+title: BFD detects failure in ~300 ms
+links:
+  - between: [r1, r2]
+    label: 10.0.12.0/30 · eBGP + BFD
+nodes:
+  r1: {sub: [AS 65001, 10.0.12.1/30]}
+  r2: {sub: [AS 65002, 10.0.12.2/30]}
+steps:
+  - text: eBGP is Established; BFD profile fast sends control packets every 100 ms each way, detect multiplier 3.
+    packets:
+      - {from: r1, to: r2, kind: tcp, label: BGP KEEPALIVE, dur: 1.0}
+      - {from: r2, to: r1, kind: tcp, label: BGP KEEPALIVE, delay: 0.6, dur: 1.0}
+      - {from: r1, to: r2, kind: udp, label: 'BFD ctrl · 100 ms', delay: 2.2, dur: 0.7}
+      - {from: r2, to: r1, kind: udp, label: 'BFD ctrl · 100 ms', delay: 2.7, dur: 0.7}
+  - text: 'The link fails: BFD control packets stop arriving, and each end counts missed intervals.'
+    dur: 1.4
+  - text: 3 × 100 ms ≈ 300 ms after the last received packet, BFD declares the session Down — sub-second detection.
+    dur: 1.8
+  - text: BGP is notified immediately and tears the session down; there is no wait for the 180 s hold timer.
+    dur: 1.8
+  - text: Without BFD, eBGP would keep the session (and traffic black-holing) until the hold timer expires — up to 180 s.
+    dur: 2.2
+badges:
+  - {node: r1, text: 'BFD Up · 3×100 ms', kind: udp, steps: [0, 1]}
+  - {node: r2, text: 'BFD Up · 3×100 ms', kind: udp, steps: [0, 1]}
+  - {node: r1, text: missing BFD rx, kind: rst, steps: [1, 2]}
+  - {node: r2, text: missing BFD rx, kind: rst, steps: [1, 2]}
+  - {node: r1, text: 'BFD Down ≈ 300 ms', kind: rst, steps: [2, 5]}
+  - {node: r2, text: 'BFD Down ≈ 300 ms', kind: rst, steps: [2, 5]}
+  - {node: r1, text: 'BGP Idle · no hold wait', kind: rst, steps: [3, 5], slot: 1}
+  - {node: r2, text: 'BGP Idle · no hold wait', kind: rst, steps: [3, 5], slot: 1}
+link_down:
+  - {link: [r1, r2], steps: [1, 5]}

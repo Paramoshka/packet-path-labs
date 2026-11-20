@@ -1,0 +1,28 @@
+title: Route reflector replaces the iBGP mesh
+iface_labels: false
+layout:
+  rows:
+    - [rr]
+    - [r1, r2, r3]
+nodes:
+  rr: {sub: ['AS 65000 · RR', 'router-id 10.0.0.254']}
+  r1: {sub: ['client · 10.0.1.2/30', lo 1.1.1.1/32]}
+  r2: {sub: ['client · 10.0.2.2/30', lo 2.2.2.2/32]}
+  r3: {sub: ['client · 10.0.3.2/30', lo 3.3.3.3/32]}
+steps:
+  - text: One AS 65000, no full mesh — r1, r2 and r3 each keep a single iBGP session, to the route reflector.
+    dur: 1.8
+  - text: r1 originates its loopback 1.1.1.1/32 and sends an iBGP UPDATE to the RR.
+    packets:
+      - {from: r1, to: rr, kind: bgp, label: 'UPDATE 1.1.1.1/32', dur: 1.6}
+  - text: The RR reflects the UPDATE to clients r2 and r3, adding ORIGINATOR_ID and CLUSTER_LIST for loop prevention.
+    packets:
+      - {from: rr, to: r2, kind: bgp, label: 'reflect 1.1.1.1/32', dur: 1.5, pulse: true}
+      - {from: rr, to: r3, kind: bgp, label: 'reflect 1.1.1.1/32', delay: 1.1, dur: 1.5, pulse: true}
+  - text: r2 and r3 now hold 1.1.1.1/32 in BGP without any direct session to r1; the route is never reflected back to its originator.
+    dur: 2.2
+badges:
+  - {node: rr, text: 'RR: 3 clients', kind: bgp, steps: [0, 4]}
+  - {node: rr, text: 'RR: reflect', kind: bgp, steps: [2, 3], slot: 1}
+  - {node: r2, text: '1.1.1.1/32 in BGP', kind: bgp, steps: [3, 4]}
+  - {node: r3, text: '1.1.1.1/32 in BGP', kind: bgp, steps: [3, 4]}

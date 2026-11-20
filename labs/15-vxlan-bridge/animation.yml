@@ -1,0 +1,45 @@
+title: 'VXLAN bridge: flood-and-learn FDB'
+iface_labels: false
+layout:
+  rows:
+    - [h1a, vtep1, vtep2, h2a]
+    - [h1b, h2b]
+  x: {h1b: 294.7, h2b: 505.3}
+links:
+  - between: [vtep1, vtep2]
+    label: underlay 192.0.2.0/30
+nodes:
+  h1a: {sub: 10.10.10.11/24}
+  h1b: {sub: 10.10.10.12/24}
+  vtep1: {sub: ['br100 · VNI 100', 192.0.2.1/30]}
+  vtep2: {sub: ['br100 · VNI 100', 192.0.2.2/30]}
+  h2a: {sub: 10.10.10.21/24}
+  h2b: {sub: 10.10.10.22/24}
+steps:
+  - text: h1a pings h2a across the VXLAN bridge; vtep1 knows the h1a MAC locally, but the h2a MAC is still unknown.
+    packets:
+      - {from: h1a, to: vtep1, kind: icmp, label: 'ICMP → 10.10.10.21', dur: 1.2}
+  - text: 'Unknown unicast: vtep1 floods out its local ports and into the VNI 100 tunnel; vtep2 learns h1a and
+      floods too.'
+    packets:
+      - {from: vtep1, to: h1b, kind: icmp, label: 'flood: local port', dur: 1.0}
+      - {from: vtep1, to: vtep2, kind: vxlan, label: 'VNI 100 · flood', encap: true, pulse: true, delay: 0.2, dur: 1.8}
+      - legs:
+          - {from: vtep2, to: h2a, kind: icmp, label: 'flood: local ports', dur: 1.0, pulse: true}
+          - {from: vtep2, to: h2b, kind: icmp, dur: 1.0}
+        delay: 2.7
+  - text: h2a replies — vtep2's FDB now maps the h1a MAC to remote VTEP 192.0.2.1, so the reply is unicast, not flooded.
+    packets:
+      - legs:
+          - {from: h2a, to: vtep2, kind: icmp, label: ICMP echo reply, dur: 1.0}
+          - {from: vtep2, to: vtep1, kind: vxlan, label: 'VNI 100 · unicast', encap: true, pulse: true, dur: 1.8}
+          - {from: vtep1, to: h1a, kind: icmp, dur: 1.0, pulse: true}
+  - text: Both FDBs are warm — the next h1a→h2a frame is unicast end to end, with no flooding on either bridge.
+    packets:
+      - legs:
+          - {from: h1a, to: vtep1, kind: icmp, label: 'ICMP → 10.10.10.21', dur: 0.9}
+          - {from: vtep1, to: vtep2, kind: vxlan, label: 'VNI 100 · unicast', encap: true, dur: 1.6}
+          - {from: vtep2, to: h2a, kind: icmp, dur: 0.9}
+badges:
+  - {node: vtep2, text: 'FDB: h1a → 192.0.2.1', kind: vxlan, steps: [2, 4]}
+  - {node: vtep1, text: 'FDB: h2a → 192.0.2.2', kind: vxlan, steps: [3, 4]}

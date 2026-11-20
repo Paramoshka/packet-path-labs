@@ -19,5 +19,9 @@ record both positive and negative cases in `VALIDATION.md`; YAML validation
 alone is not evidence that routing or service behavior works. Never reuse or
 destroy another learner's running lab for tests.
 
+Packet-path animations are generated artifacts: edit the lab's `animation.yml`,
+run `make animations`, and commit the regenerated SVGs together with the
+scenario. `make check` fails when committed SVGs are stale.
+
 `MANIFEST.sha256` records repository source files except itself. Refresh it when
 source files change; exclude ignored runtime directories and captures.

@@ -1,0 +1,37 @@
+title: MTU bottleneck and PMTUD
+links:
+  - between: [h1, r1]
+    label: '10.0.1.0/24 · MTU 1500'
+  - between: [r1, h2]
+    label: '10.0.2.0/24 · MTU 1200'
+nodes:
+  h1: {sub: '10.0.1.2/24 · MTU 1500'}
+  r1: {sub: '10.0.1.1 · 10.0.2.1'}
+  h2: {sub: '10.0.2.2/24 · MTU 1200'}
+steps:
+  - text: ping -M do -s 1400 sends a 1428-byte packet with DF set; it fits h1's 1500-byte link.
+    packets:
+      - {from: h1, to: r1, kind: icmp, label: '1428B · DF set', dur: 1.6}
+  - text: r1's eth2 MTU is 1200 and DF forbids fragmentation, so r1 drops it and returns ICMP frag-needed.
+    packets:
+      - {from: r1, to: h1, kind: icmp, label: 'frag-needed · MTU 1200', pulse: true, dur: 1.8}
+  - text: 'Contrast: without DF, r1 splits the same datagram into two fragments that h2 reassembles.'
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: icmp, label: '1428B · no DF', dur: 1.0}
+          - {from: r1, to: h2, kind: icmp, label: 'fragment 1/2', pulse: true, dur: 1.2}
+      - {from: r1, to: h2, kind: icmp, label: 'fragment 2/2', delay: 2.8, dur: 1.2}
+  - text: 'PMTUD: h1 caches path MTU 1200 and retries smaller — -s 1100 gives 1128 bytes, which fits.'
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: icmp, label: '1128B · DF · fits 1200', dur: 1.2}
+          - {from: r1, to: h2, kind: icmp, dur: 1.2}
+  - text: The echo reply comes back; tracepath reports the same 1200-byte path MTU hop by hop.
+    packets:
+      - legs:
+          - {from: h2, to: r1, kind: icmp, label: echo reply, dur: 1.2}
+          - {from: r1, to: h1, kind: icmp, dur: 1.2}
+badges:
+  - {node: r1, text: 'eth2 MTU 1200', kind: data, steps: [0, 5]}
+  - {node: r1, text: 'DF set → drop', kind: rst, steps: [1, 2], slot: 1}
+  - {node: h1, text: 'PMTU 1200 learned', kind: icmp, steps: [2, 5]}
