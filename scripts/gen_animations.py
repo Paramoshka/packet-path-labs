@@ -10,6 +10,9 @@ The SVGs use only basic shapes, text and SMIL animation elements — no
 scripts, styles, defs or external references — so they survive GitHub's
 SVG sanitization and animate inline when the README is viewed.
 
+Every packet hop receives ``LEG_PAD`` extra seconds on top of the duration
+authored in the scenario, so motion stays readable on short links.
+
 Usage:
     python3 scripts/gen_animations.py            # regenerate every lab
     python3 scripts/gen_animations.py --lab 01-l2-arp-icmp
@@ -31,6 +34,8 @@ TOP_Y = 84
 PAD_X = 84
 FADE = 0.25
 TAIL = 0.9
+DEFAULT_LEG = 1.6
+LEG_PAD = 0.5  # extra seconds per hop so packet motion reads calmly
 
 SANS = ("-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', "
         'Helvetica, Arial, sans-serif')
@@ -113,10 +118,19 @@ def load_scenario(lab_dir):
                 need_link(leg.get('from'), leg.get('to'), f'step {i}')
                 if leg.get('kind', 'data') not in KINDS:
                     raise ValueError(f'step {i}: unknown kind {leg.get("kind")!r}')
-                if float(leg.get('dur', 1.6)) <= 0:
+                if float(leg.get('dur', DEFAULT_LEG)) <= 0:
                     raise ValueError(f'step {i}: leg dur must be positive')
 
     n = len(steps)
+
+    # slow every hop down a little; scenarios keep their authored durations
+    for step in steps:
+        for packet in step.get('packets', []):
+            if 'legs' in packet:
+                for leg in packet['legs']:
+                    leg['dur'] = float(leg.get('dur', DEFAULT_LEG)) + LEG_PAD
+            else:
+                packet['dur'] = float(packet.get('dur', DEFAULT_LEG)) + LEG_PAD
 
     def window_steps(entry, where):
         bounds = entry.get('steps')
@@ -197,7 +211,7 @@ def step_times(scenario):
         for packet in step.get('packets', []):
             delay = float(packet.get('delay', 0))
             legs = packet_legs(packet)
-            span = max(span, delay + sum(float(leg.get('dur', 1.6)) for leg in legs))
+            span = max(span, delay + sum(float(leg.get('dur', DEFAULT_LEG)) for leg in legs))
         t += span + hold
     return starts, round(t + TAIL, 3)
 
@@ -402,7 +416,7 @@ class Scene:
             for packet in step.get('packets', []):
                 t = base + float(packet.get('delay', 0))
                 for leg in packet_legs(packet):
-                    dur = float(leg.get('dur', 1.6))
+                    dur = float(leg.get('dur', DEFAULT_LEG))
                     yield (round(t, 3), round(t + dur, 3), leg.get('kind', 'data'),
                            leg['from'], leg['to'])
                     t += dur
@@ -463,7 +477,7 @@ class Scene:
             for packet in step.get('packets', []):
                 t0 = base + float(packet.get('delay', 0))
                 for leg in packet_legs(packet):
-                    dur = float(leg.get('dur', 1.6))
+                    dur = float(leg.get('dur', DEFAULT_LEG))
                     start, end = round(t0, 3), round(t0 + dur, 3)
                     glyph, label = self.render_leg(leg, start, end, theme, t)
                     out.append(glyph)
@@ -481,7 +495,7 @@ class Scene:
                 for leg in packet_legs(packet):
                     if leg.get('pulse'):
                         out.append(self.render_pulse(leg['from'], t0, theme, t))
-                    t0 += float(leg.get('dur', 1.6))
+                    t0 += float(leg.get('dur', DEFAULT_LEG))
         return out
 
     def render_pulse(self, node, at, theme, t):

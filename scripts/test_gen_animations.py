@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import yaml
-from gen_animations import generate, load_scenario, value_track
+from gen_animations import generate, load_scenario, step_times, value_track
 
 
 class GenAnimationsTests(unittest.TestCase):
@@ -84,6 +84,12 @@ class GenAnimationsTests(unittest.TestCase):
         self.write_scenario()
         with self.assertRaisesRegex(ValueError, 'non-empty steps'):
             load_scenario(self.lab)
+
+    def test_leg_pad_slows_every_hop(self):
+        _, scenario, _, _ = load_scenario(self.lab)
+        _, total = step_times(scenario)
+        # pause .5 + authored 1.5 + pad .5 + hold 1.1 + tail .9
+        self.assertAlmostEqual(total, 4.5)
 
     def test_value_track_monotonic_and_bounded(self):
         values, key_times = value_track([(2, 0), (2.2, 1), (5, 1), (5.2, 0)], 10, 0)
