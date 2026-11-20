@@ -1,0 +1,43 @@
+title: Traceroute via TTL expiry
+iface_labels: false
+links:
+  - between: [h1, r1]
+    label: 10.0.1.0/24
+  - between: [r1, r2]
+    label: 10.0.12.0/30
+  - between: [r2, h2]
+    label: 10.0.2.0/24
+nodes:
+  h1: {sub: 10.0.1.2/24}
+  r1: {sub: '10.0.1.1 · 10.0.12.1'}
+  r2: {sub: '10.0.12.2 · 10.0.2.1'}
+  h2: {sub: 10.0.2.2/24}
+steps:
+  - text: 'ping -t 1: r1 decrements TTL to 0, discards the probe and returns ICMP time-exceeded — hop 1.'
+    packets:
+      - {from: h1, to: r1, kind: icmp, label: 'echo req · TTL 1', dur: 0.9}
+      - {from: r1, to: h1, kind: icmp, label: 'time-exceeded · r1', delay: 1.6, dur: 0.9}
+  - text: 'ping -t 2: r1 forwards with TTL 1; r2 decrements to 0 and sends time-exceeded — hop 2.'
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: icmp, label: 'echo req · TTL 2', dur: 0.9}
+          - {from: r1, to: r2, kind: icmp, label: 'TTL 1', dur: 0.9}
+      - legs:
+          - {from: r2, to: r1, kind: icmp, label: 'time-exceeded · r2', dur: 0.9}
+          - {from: r1, to: h1, kind: icmp, dur: 0.9}
+        delay: 3.0
+  - text: 'ping -t 3: the probe reaches h2, which answers with an echo reply — traceroute''s final hop.'
+    packets:
+      - legs:
+          - {from: h1, to: r1, kind: icmp, label: 'echo req · TTL 3', dur: 0.9}
+          - {from: r1, to: r2, kind: icmp, label: 'TTL 2', dur: 0.9}
+          - {from: r2, to: h2, kind: icmp, label: 'TTL 1', dur: 0.9}
+      - legs:
+          - {from: h2, to: r2, kind: icmp, label: 'echo reply · h2', dur: 0.9}
+          - {from: r2, to: r1, kind: icmp, dur: 0.9}
+          - {from: r1, to: h1, kind: icmp, dur: 0.9}
+        delay: 4.4
+badges:
+  - {node: r1, text: 'hop 1 · 10.0.1.1', kind: icmp, steps: [0, 1]}
+  - {node: r2, text: 'hop 2 · 10.0.12.2', kind: icmp, steps: [1, 2]}
+  - {node: h2, text: 'hop 3 · 10.0.2.2', kind: icmp, steps: [2, 3]}

@@ -10,6 +10,13 @@ Prerequisites: labs 02 and 30. No public DNS dependency for the experiments.
 The resolver forwards only `lab.test` to auth. The reserved `.test` zone is local.
 This demonstrates forwarding/caching, not a complete root-to-TLD recursive walk.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: dig app.lab.test misses the resolver cache and is forwarded to the auth server; a second query within the TTL is answered straight from cache." src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. On client run `dig @10.32.0.1 app.lab.test A`. Expect `192.0.2.80`.

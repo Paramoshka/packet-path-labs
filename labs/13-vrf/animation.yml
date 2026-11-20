@@ -1,0 +1,31 @@
+title: VRF — one subnet in two isolated tables
+links:
+  - between: [blue, r1]
+    label: 10.0.0.0/24
+  - between: [r1, red]
+    label: 10.0.0.0/24
+nodes:
+  blue: {sub: [10.0.0.2/24, default via 10.0.0.1]}
+  r1: {sub: ['vrf-blue · table 100', 'vrf-red · table 200']}
+  red: {sub: [10.0.0.2/24, default via 10.0.0.1]}
+steps:
+  - text: 'r1 enforces two VRFs: eth1 belongs to vrf-blue (table 100), eth2 to vrf-red (table 200) — the same
+      subnet exists twice.'
+    dur: 2.0
+  - text: From vrf-blue, ping 10.0.0.2 looks up table 100 only and reaches the blue host; the reply stays in table 100.
+    packets:
+      - {from: r1, to: blue, kind: icmp, label: 'ping 10.0.0.2 · table 100', dur: 1.2}
+      - {from: blue, to: r1, kind: icmp, label: 'echo reply · table 100', delay: 1.9, dur: 1.2}
+  - text: The very same destination IP from vrf-red hits table 200 and reaches the red host — no address conflict.
+    packets:
+      - {from: r1, to: red, kind: icmp, label: 'ping 10.0.0.2 · table 200', dur: 1.2}
+      - {from: red, to: r1, kind: icmp, label: 'echo reply · table 200', delay: 1.9, dur: 1.2}
+  - text: 'Without route leaking the tables never exchange routes: blue and red remain two isolated worlds.'
+    dur: 2.0
+badges:
+  - {node: r1, text: 'vrf-blue → table 100', kind: tcp, steps: [0, 2], slot: 0}
+  - {node: r1, text: 'vrf-red → table 200', kind: rst, steps: [0, 3], slot: 1}
+  - {node: r1, text: 'tables 100/200 isolated', kind: rst, steps: [3, 4], slot: 0}
+dim:
+  - {node: blue, steps: [3, 4]}
+  - {node: red, steps: [3, 4]}

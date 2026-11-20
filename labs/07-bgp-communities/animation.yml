@@ -1,0 +1,28 @@
+title: Community tags steer export policy
+links:
+  - between: [r1, r2]
+    label: 10.0.12.0/30
+  - between: [r2, r3]
+    label: 10.0.23.0/30
+nodes:
+  r1: {sub: 'AS 65001 · TAG out'}
+  r2: {sub: 'AS 65002 · EXPORT-BLUE'}
+  r3: {sub: 'AS 65003'}
+steps:
+  - text: 'r1 tags prefixes on export: 10.10.10.0/24 gets 65001:100, 10.20.20.0/24 gets 65001:200.'
+    packets:
+      - {from: r1, to: r2, kind: bgp, label: '10.10.10.0/24 · 65001:100', dur: 1.4}
+      - {from: r1, to: r2, kind: bgp, label: '10.20.20.0/24 · 65001:200', delay: 0.6, dur: 1.4}
+  - text: 'r2 matches tags, not prefixes: EXPORT-BLUE exports only community 65001:100 toward r3.'
+    packets:
+      - {from: r2, to: r3, kind: bgp, label: 'UPDATE 10.10.10.0/24', dur: 1.6}
+  - text: r3 installs only the BLUE prefix; a flow to 10.10.10.0/24 crosses all three ASes.
+    packets:
+      - legs:
+          - {from: r3, to: r2, kind: tcp, label: 'flow → 10.10.10.0/24', dur: 1.2}
+          - {from: r2, to: r1, kind: tcp, dur: 1.2}
+  - text: 'The RED prefix never leaves AS 65002: one community rule scales to any number of prefixes.'
+    dur: 1.8
+badges:
+  - {node: r2, text: '65001:200 not exported', kind: rst, steps: [1, 4]}
+  - {node: r3, text: 'only 10.10.10.0/24', kind: tcp, steps: [2, 4]}

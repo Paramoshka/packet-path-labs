@@ -12,6 +12,13 @@ r1        r4
       r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: OSPF gives r1 two equal-cost paths to 4.4.4.4/32; flow 1 hashes via r2, flow 2 via r3, keeping both links active." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

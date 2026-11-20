@@ -8,6 +8,13 @@ Use the IPv6 unicast address family and follow AS_PATH and next-hop behavior wit
 AS65001 r1 ==== AS65002 r2 ==== AS65003 r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animated packet path: eBGP OPENs over IPv6, MP-BGP UPDATEs carry 2001:db8:3::3/128 from AS 65003 to AS 65001, then ICMPv6 echo follows the route." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

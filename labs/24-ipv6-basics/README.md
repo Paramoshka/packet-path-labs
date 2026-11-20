@@ -8,6 +8,13 @@ Repeat the first L2 lab with IPv6: link-local addresses, Neighbor Discovery and 
 h1 2001:db8:1::1/64 ---- 2001:db8:1::2/64 h2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animated packet path: h2 sends an RS, h1 answers with an RA carrying 2001:db8:24::/64, DAD NS passes, then NS/NA and ICMPv6 echo between h1 and h2." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

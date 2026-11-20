@@ -1,0 +1,36 @@
+title: DHCP DORA across a relay
+links:
+  - between: [client, relay]
+    label: 10.33.0.0/24
+  - between: [relay, server]
+    label: 10.33.1.0/24
+nodes:
+  client: {sub: ['0.0.0.0 · no lease yet', 'udhcpc on eth1']}
+  relay: {sub: ['10.33.0.1 · 10.33.1.1', 'dnsmasq DHCP relay']}
+  server: {sub: ['10.33.1.2/24', 'pool .100-.150 · lease 2m']}
+steps:
+  - text: With no address, the client broadcasts DHCPDISCOVER (0.0.0.0 → 255.255.255.255, UDP 68→67).
+    packets:
+      - {from: client, to: relay, kind: udp, label: 'DISCOVER · broadcast', dur: 1.6}
+  - text: Routers do not forward broadcasts; dnsmasq relays it unicast to 10.33.1.2 with giaddr=10.33.0.1.
+    packets:
+      - {from: relay, to: server, kind: udp, label: 'DISCOVER · giaddr 10.33.0.1', pulse: true, dur: 1.6}
+  - text: 'The server picks the subnet from giaddr; OFFER returns via the relay: 10.33.0.100/24, lease 2 min.'
+    packets:
+      - legs:
+          - {from: server, to: relay, kind: udp, label: 'OFFER · 10.33.0.100', dur: 1.2}
+          - {from: relay, to: client, kind: udp, dur: 1.2}
+  - text: The client broadcasts DHCPREQUEST for the offered address; the relay forwards it with giaddr again.
+    packets:
+      - legs:
+          - {from: client, to: relay, kind: udp, label: 'REQUEST · 10.33.0.100', dur: 1.2}
+          - {from: relay, to: server, kind: udp, dur: 1.2}
+  - text: DHCPACK completes DORA; the hook installs the address, default route via 10.33.0.1 and DNS 10.33.1.2.
+    packets:
+      - legs:
+          - {from: server, to: relay, kind: udp, label: 'ACK · lease 2m', dur: 1.2}
+          - {from: relay, to: client, kind: udp, dur: 1.2}
+badges:
+  - {node: relay, text: 'giaddr = 10.33.0.1', kind: udp, steps: [1, 5]}
+  - {node: client, text: 'no address · 0.0.0.0', kind: data, steps: [0, 4]}
+  - {node: client, text: 'bound 10.33.0.100/24', kind: icmp, steps: [4, 5]}

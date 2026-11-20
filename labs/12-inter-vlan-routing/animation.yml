@@ -1,0 +1,35 @@
+title: 'Router-on-a-stick: 802.1Q inter-VLAN routing'
+layout:
+  rows:
+    - [h10, sw1, r1]
+    - [h20]
+links:
+  - between: [sw1, r1]
+    label: trunk VLAN 10,20
+nodes:
+  h10: {sub: [10.10.10.10/24, access VLAN 10]}
+  sw1: {sub: br0 · vlan_filtering}
+  r1: {sub: ['eth1.10 · 10.10.10.1', 'eth1.20 · 10.20.20.1']}
+  h20: {sub: [10.20.20.20/24, access VLAN 20]}
+steps:
+  - text: h10 wants 10.20.20.20 in VLAN 20, so it sends the frame to its gateway 10.10.10.1 on r1.
+    packets:
+      - {from: h10, to: sw1, kind: icmp, label: 'ICMP → 10.20.20.20', dur: 1.2}
+  - text: sw1 tags the frame with VLAN 10 and forwards it over the 802.1Q trunk; r1 receives it on eth1.10.
+    packets:
+      - {from: sw1, to: r1, kind: icmp, label: '802.1Q tag: VLAN 10', dur: 1.4}
+  - text: 'r1 routes between sub-interfaces: out eth1.20 the frame is re-tagged as VLAN 20 back onto the trunk.'
+    packets:
+      - {from: r1, to: sw1, kind: icmp, label: '802.1Q tag: VLAN 20', dur: 1.4, pulse: true}
+  - text: sw1 strips the tag on the access port; h20 receives plain Ethernet and aims its reply at 10.20.20.1.
+    packets:
+      - {from: sw1, to: h20, kind: icmp, label: 'untagged → h20', dur: 1.2}
+  - text: The reply rides VLAN 20 to r1, is routed to eth1.10, and reaches h10 untagged — one trunk, two VLANs.
+    packets:
+      - legs:
+          - {from: h20, to: sw1, kind: icmp, label: ICMP echo reply, dur: 0.8}
+          - {from: sw1, to: r1, kind: icmp, label: VLAN 20 tag, dur: 0.8}
+          - {from: r1, to: sw1, kind: icmp, label: VLAN 10 tag, dur: 0.8, pulse: true}
+          - {from: sw1, to: h10, kind: icmp, label: 'untagged → h10', dur: 0.8}
+badges:
+  - {node: r1, text: 'eth1.10 → eth1.20', kind: icmp, steps: [2, 5]}

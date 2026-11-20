@@ -12,6 +12,13 @@ Combine a redundant eBGP underlay with VXLAN VTEPs and an EVPN overlay. The star
          h1          h2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animated packet path: eBGP underlay advertises VTEP loopbacks, EVPN type-3/2 routes cross spines, then VXLAN VNI 100 echo h1-h2 via both spines." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

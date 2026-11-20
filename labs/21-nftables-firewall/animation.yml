@@ -1,0 +1,42 @@
+title: Stateful nftables forward filtering
+links:
+  - between: [h1, fw]
+    label: 10.0.1.0/24
+  - between: [fw, h2]
+    label: 10.0.2.0/24
+nodes:
+  h1: {sub: 10.0.1.2/24}
+  fw: {sub: ['10.0.1.1 · 10.0.2.1', 'inet filter · policy drop']}
+  h2: {sub: 10.0.2.2/24}
+steps:
+  - text: 'ICMP matches "ip protocol icmp accept": echo request and reply pass the firewall both ways.'
+    packets:
+      - legs:
+          - {from: h1, to: fw, kind: icmp, label: echo request, dur: 1.0}
+          - {from: fw, to: h2, kind: icmp, dur: 1.0}
+      - legs:
+          - {from: h2, to: fw, kind: icmp, label: echo reply, dur: 1.0}
+          - {from: fw, to: h1, kind: icmp, dur: 1.0}
+        delay: 3.2
+  - text: A TCP SYN to port 8080 matches no allow rule, so the forward chain's policy drop discards it.
+    packets:
+      - {from: h1, to: fw, kind: tcp, label: 'SYN → 10.0.2.2:8080', dur: 1.6}
+  - text: 'Insert a narrow "tcp dport 8080 accept" rule: the SYN passes and conntrack records the new flow.'
+    packets:
+      - legs:
+          - {from: h1, to: fw, kind: tcp, label: 'SYN · permit added', dur: 1.2}
+          - {from: fw, to: h2, kind: tcp, dur: 1.2}
+  - text: 'Delete the permit by handle: the live flow still passes because "ct state established" accepts it.'
+    packets:
+      - legs:
+          - {from: h1, to: fw, kind: tcp, label: existing flow, dur: 1.2}
+          - {from: fw, to: h2, kind: tcp, label: ct state established, dur: 1.2}
+  - text: A brand-new SYN has neither a permit nor a conntrack entry — policy drop discards it again.
+    packets:
+      - {from: h1, to: fw, kind: tcp, label: 'new SYN → :8080', dur: 1.6}
+badges:
+  - {node: fw, text: 'ip protocol icmp accept', kind: icmp, steps: [0, 1]}
+  - {node: fw, text: 'policy drop', kind: rst, steps: [1, 2]}
+  - {node: fw, text: 'tcp dport 8080 accept', kind: tcp, steps: [2, 3]}
+  - {node: fw, text: 'ct state established accept', kind: icmp, steps: [3, 4]}
+  - {node: fw, text: 'policy drop', kind: rst, steps: [4, 5]}

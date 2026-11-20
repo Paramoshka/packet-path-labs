@@ -8,6 +8,13 @@ Create an MTU bottleneck and study fragmentation, DF (Don’t Fragment) and Path
 h1 MTU1500 -- r1 -- MTU1200 -- h2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: a 1428-byte DF packet dies at r1's 1200-byte link, ICMP frag-needed teaches h1 the path MTU, and a smaller 1128-byte packet gets through." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

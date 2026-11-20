@@ -9,6 +9,13 @@ h10(VLAN10) -- sw1 == trunk 10,20 == r1
 h20(VLAN20) --/
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: an ICMP frame is tagged VLAN 10 on the trunk, routed from eth1.10 to eth1.20 on r1, re-tagged VLAN 20, and delivered untagged to h20" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

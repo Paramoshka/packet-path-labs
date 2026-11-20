@@ -7,6 +7,13 @@ Prerequisites: lab 31.
 
 `h1 10.37.1.2 — r1 — h2 10.37.2.2 (iperf3 server)`
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: under HTB 10mbit on r1 eth2, pfifo queues ping behind iperf3 bulk (high latency); swapping to fq_codel keeps ping fast at the same rate." src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. On r1 create an HTB root and a 10 Mbit/s class:

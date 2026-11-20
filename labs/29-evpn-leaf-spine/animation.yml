@@ -1,0 +1,55 @@
+title: EVPN type-2/3 routes over a VXLAN leaf-spine
+iface_labels: false
+layout:
+  rows:
+    - [spine1, spine2]
+    - [leaf1, leaf2]
+    - [h1, h2]
+  x: {spine1: 240, spine2: 560, leaf1: 240, leaf2: 560, h1: 160, h2: 640}
+links:
+  - between: [leaf1, h1]
+    label: VNI 100
+  - between: [leaf2, h2]
+    label: VNI 100
+nodes:
+  spine1: {sub: ['AS 65000', '10.255.255.1/32']}
+  spine2: {sub: ['AS 65000', '10.255.255.2/32']}
+  leaf1: {sub: ['AS 65101 · VNI 100', 'VTEP 10.255.0.1']}
+  leaf2: {sub: ['AS 65102 · VNI 100', 'VTEP 10.255.0.2']}
+  h1: {sub: 10.10.10.11/24}
+  h2: {sub: 10.10.10.22/24}
+steps:
+  - text: 'eBGP underlay: leaf1 advertises its VTEP loopback 10.255.0.1/32 to both spines (AS 65101 → 65000).'
+    packets:
+      - {from: leaf1, to: spine1, kind: bgp, label: 'UPDATE 10.255.0.1/32', dur: 1.0}
+      - {from: leaf1, to: spine2, kind: bgp, label: 'UPDATE 10.255.0.1/32', delay: 0.3, dur: 1.0}
+  - text: Spines re-advertise leaf2's 10.255.0.2/32; leaf1 installs two equal-cost paths to leaf2's VTEP.
+    packets:
+      - {from: spine1, to: leaf1, kind: bgp, label: 'UPDATE 10.255.0.2/32', dur: 1.0}
+      - {from: spine2, to: leaf1, kind: bgp, label: 'UPDATE 10.255.0.2/32', delay: 0.3, dur: 1.0}
+  - text: "Leaf-to-leaf multihop eBGP carries EVPN: type-3 (IMET) joins VNI 100's BUM tree; type-2 maps h2's MAC."
+    packets:
+      - legs:
+          - {from: leaf2, to: spine1, kind: bgp, label: 'EVPN type-3 (IMET) · VNI 100', dur: 0.9}
+          - {from: spine1, to: leaf1, kind: bgp, dur: 0.9}
+      - legs:
+          - {from: leaf2, to: spine2, kind: bgp, label: 'EVPN type-2 · h2 MAC/IP · VNI 100', dur: 0.9}
+          - {from: spine2, to: leaf1, kind: bgp, dur: 0.9}
+        delay: 3.0
+  - text: 'h1 pings h2 (10.10.10.22): leaf1 VXLAN-encapsulates with VNI 100 to 10.255.0.2 via spine1.'
+    packets:
+      - legs:
+          - {from: h1, to: leaf1, kind: icmp, label: 'ICMP echo → 10.10.10.22', dur: 0.8}
+          - {from: leaf1, to: spine1, kind: vxlan, encap: true, pulse: true, label: 'VXLAN VNI 100 → 10.255.0.2', dur: 1.1}
+          - {from: spine1, to: leaf2, kind: vxlan, encap: true, dur: 1.1}
+          - {from: leaf2, to: h2, kind: icmp, pulse: true, label: ICMP echo → h2, dur: 0.8}
+  - text: leaf2 decapsulates to h2; the reply re-encapsulates and returns via spine2 — both uplinks carry traffic.
+    packets:
+      - legs:
+          - {from: h2, to: leaf2, kind: icmp, label: ICMP echo reply, dur: 0.8}
+          - {from: leaf2, to: spine2, kind: vxlan, encap: true, pulse: true, label: 'VXLAN VNI 100 → 10.255.0.1', dur: 1.1}
+          - {from: spine2, to: leaf1, kind: vxlan, encap: true, dur: 1.1}
+          - {from: leaf1, to: h1, kind: icmp, pulse: true, label: ICMP reply → h1, dur: 0.8}
+badges:
+  - {node: leaf1, text: 'ECMP: 2 underlay paths', kind: bgp, steps: [1, 3]}
+  - {node: leaf1, text: 'type-2: h2 MAC → VNI 100', kind: bgp, steps: [3, 5]}

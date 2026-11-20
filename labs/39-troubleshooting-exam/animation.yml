@@ -1,0 +1,57 @@
+title: 'Troubleshooting: dropped TCP/8080'
+layout:
+  rows:
+    - [client, r1, server]
+    - [dns]
+  x: {dns: 180}
+links:
+  - between: [client, r1]
+    label: 10.39.1.0/24
+  - between: [r1, server]
+    label: 10.39.2.0/24
+  - between: [r1, dns]
+    label: 10.39.3.0/24
+nodes:
+  client: {sub: [10.39.1.10/24, curl · dig]}
+  r1: {sub: ['router · .1 per subnet', iptables FORWARD]}
+  server: {sub: [10.39.2.10/24, 'http.server :8080']}
+  dns: {sub: [10.39.3.53/24, app.lab.test]}
+steps:
+  - text: 'Baseline: ICMP to 10.39.2.10 succeeds through r1. Reachability looks fine — now test the HTTP service.'
+    packets:
+      - legs:
+          - {from: client, to: r1, kind: icmp, label: ICMP echo, dur: 0.7}
+          - {from: r1, to: server, kind: icmp, dur: 0.7}
+      - legs:
+          - {from: server, to: r1, kind: icmp, label: ICMP reply, dur: 0.7}
+          - {from: r1, to: client, kind: icmp, dur: 0.7}
+        delay: 2.2
+  - text: 'Fault: curl times out. The SYN arrives on r1 eth1 but never leaves eth2 — a FORWARD rule drops TCP/8080.'
+    packets:
+      - legs:
+          - {from: client, to: r1, kind: tcp, label: 'SYN → :8080', dur: 1.0}
+          - {from: r1, to: server, kind: rst, label: SYN dropped, dur: 1.4}
+  - text: 'Distinguishing evidence: ping still passes, tcpdump sees ingress SYN only, and the iptables rule counter climbs.'
+    dur: 1.8
+  - text: 'Smallest repair on r1: iptables -D FORWARD -i eth1 -o eth2 -p tcp --dport 8080 -j DROP. No broad flush.'
+    dur: 1.6
+  - text: 'Verified: SYN/ACK returns, GET / answers 200 with body packet-path-labs. Check DNS, direct and named HTTP.'
+    packets:
+      - legs:
+          - {from: client, to: r1, kind: tcp, label: 'SYN → :8080', dur: 0.6}
+          - {from: r1, to: server, kind: tcp, dur: 0.6}
+      - legs:
+          - {from: server, to: r1, kind: tcp, label: SYN/ACK, dur: 0.6}
+          - {from: r1, to: client, kind: tcp, dur: 0.6}
+        delay: 2.2
+      - legs:
+          - {from: client, to: r1, kind: data, label: 'GET /', dur: 0.6}
+          - {from: r1, to: server, kind: data, dur: 0.6}
+        delay: 4.4
+      - legs:
+          - {from: server, to: r1, kind: data, label: 200 OK, dur: 0.6}
+          - {from: r1, to: client, kind: data, dur: 0.6}
+        delay: 6.6
+badges:
+  - {node: r1, text: 'DROP tcp/8080', kind: rst, steps: [1, 3]}
+  - {node: r1, text: rule deleted, kind: tcp, steps: [3, 5]}

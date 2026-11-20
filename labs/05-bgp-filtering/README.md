@@ -8,6 +8,13 @@ Use three autonomous systems to study BGP policy and path propagation.
 AS65001 r1 ---- AS65002 r2 ---- AS65003 r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: r3 sends two prefixes; r2's FILTER-TO-R1 exports only 3.3.3.3/32 to r1. Ping to it succeeds; traffic to 33.33.33.33/32 drops, no route." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

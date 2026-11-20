@@ -8,6 +8,13 @@ Use Bidirectional Forwarding Detection to detect forwarding failure much faster 
 r1 AS65001 ===== BFD + eBGP ===== r2 AS65002
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: BFD probes every 100 ms; when the link fails, BFD declares Down in about 300 ms and eBGP tears down without waiting for the 180 s hold timer" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

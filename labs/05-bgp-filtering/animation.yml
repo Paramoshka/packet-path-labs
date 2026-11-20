@@ -1,0 +1,29 @@
+title: Outbound prefix-list filtering
+links:
+  - between: [r1, r2]
+    label: 10.0.12.0/30
+  - between: [r2, r3]
+    label: 10.0.23.0/30
+nodes:
+  r1: {sub: 'AS 65001 · 1.1.1.1/32'}
+  r2: {sub: 'AS 65002 · FILTER-TO-R1'}
+  r3: {sub: ['AS 65003', '3.3.3.3 + 33.33.33.33']}
+steps:
+  - text: r3 originates two /32 loopbacks and advertises both to r2 over eBGP.
+    packets:
+      - {from: r3, to: r2, kind: bgp, label: 'UPDATE 3.3.3.3/32', dur: 1.4}
+      - {from: r3, to: r2, kind: bgp, label: 'UPDATE 33.33.33.33/32', delay: 0.5, dur: 1.4}
+  - text: 'r2 exports toward r1 through FILTER-TO-R1: prefix-list TO-R1 permits only 3.3.3.3/32.'
+    packets:
+      - {from: r2, to: r1, kind: bgp, label: 'UPDATE 3.3.3.3/32', dur: 1.6}
+  - text: The permitted prefix is reachable end to end; r1 forwards to 3.3.3.3/32 via r2.
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMP → 3.3.3.3', dur: 1.2}
+          - {from: r2, to: r3, kind: icmp, dur: 1.2}
+  - text: 'The denied prefix fails: r1 has no route to 33.33.33.33/32, so the flow drops at r1.'
+    packets:
+      - {from: r1, to: r2, kind: rst, label: 'no route · dropped', pulse: true, dur: 0.9}
+badges:
+  - {node: r2, text: '33.33.33.33/32 denied', kind: rst, steps: [1, 4]}
+  - {node: r1, text: 'no route 33.33.33.33/32', kind: rst, steps: [1, 4]}

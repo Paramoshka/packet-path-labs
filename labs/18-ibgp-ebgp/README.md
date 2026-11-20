@@ -9,6 +9,13 @@ ISP1 -- edge1 -- core -- edge2 -- ISP2
           \____ iBGP ____/
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: OSPF brings up loopbacks, isp1's eBGP prefix reaches edge1, and edge1 re-advertises it to edge2 over iBGP with next-hop-self (1.1.1.1)" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

@@ -8,6 +8,13 @@ Demystify traceroute by forcing packets to expire one hop at a time and observin
 h1 -- r1 -- r2 -- h2
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: probes with TTL 1, 2 and 3 expire at r1, r2 and reach h2; ICMP time-exceeded replies reveal each traceroute hop, then an echo reply ends the walk." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

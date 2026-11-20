@@ -329,6 +329,8 @@ class Scene:
                f'<title>{escape(self.scenario["title"])}</title>']
         out += self.render_links(theme, t)
         out += self.render_link_states(theme, t)
+        # link labels sit above highlights and failure overlays
+        out += self.link_decos
         out += self.render_packets(theme, t)
         out += self.render_nodes(theme, t)
         out += self.render_pulses(theme, t)
@@ -341,6 +343,7 @@ class Scene:
 
     def render_links(self, theme, t):
         out = []
+        self.link_decos = []
         show_ifaces = self.scenario.get('iface_labels', len(self.links) <= 4)
         decorations = {frozenset(d['between']): d
                        for d in self.scenario.get('links', [])}
@@ -371,15 +374,17 @@ class Scene:
                 gap = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
                 if w > gap - 8:
                     # narrow link: float the label above the node boxes
-                    out.append(f'<text x="{mx}" y="{fmt(min(y1, y2) - self.node_h / 2 - 8)}" '
-                               f'font-size="9.5" fill="{t["muted"]}" '
-                               f'text-anchor="middle">{escape(label)}</text>')
+                    self.link_decos.append(
+                        f'<text x="{mx}" y="{fmt(min(y1, y2) - self.node_h / 2 - 8)}" '
+                        f'font-size="9.5" fill="{t["muted"]}" '
+                        f'text-anchor="middle">{escape(label)}</text>')
                 else:
-                    out.append(f'<rect x="{fmt(mx - w / 2)}" y="{fmt(my - 9)}" '
-                               f'width="{w}" height="18" rx="9" fill="{t["page"]}" '
-                               f'stroke="{t["link"]}"/>')
-                    out.append(f'<text x="{mx}" y="{fmt(my + 3.5)}" font-size="10" '
-                               f'fill="{t["muted"]}" text-anchor="middle">{escape(label)}</text>')
+                    self.link_decos.append(
+                        f'<rect x="{fmt(mx - w / 2)}" y="{fmt(my - 9)}" '
+                        f'width="{w}" height="18" rx="9" fill="{t["page"]}" '
+                        f'stroke="{t["link"]}"/>'
+                        f'<text x="{mx}" y="{fmt(my + 3.5)}" font-size="10" '
+                        f'fill="{t["muted"]}" text-anchor="middle">{escape(label)}</text>')
         return out
 
     def render_link_states(self, theme, t):
@@ -398,7 +403,14 @@ class Scene:
             a, b = down['link']
             window = self.step_window(down['steps'])
             (x1, y1), (x2, y2) = self.link_geometry(a, b)
-            mx, my = round((x1 + x2) / 2, 1), round((y1 + y2) / 2, 1)
+            gap = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+            if gap < 60:
+                # narrow link: float the cross above the link label
+                mx = round((x1 + x2) / 2, 1)
+                my = round(min(y1, y2) - self.node_h / 2 - 26, 1)
+            else:
+                mx = round(x1 + (x2 - x1) * 0.32, 1)
+                my = round(y1 + (y2 - y1) * 0.32, 1)
             points = window_points([window])
             out.append(f'<g opacity="0">{animate("opacity", points, self.total, 0)}'
                        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{red}" '

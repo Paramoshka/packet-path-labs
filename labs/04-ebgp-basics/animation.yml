@@ -1,0 +1,30 @@
+title: eBGP sessions and AS_PATH propagation
+links:
+  - between: [r1, r2]
+    label: 10.0.12.0/30
+  - between: [r2, r3]
+    label: 10.0.23.0/30
+nodes:
+  r1: {sub: 'AS 65001 · 1.1.1.1/32'}
+  r2: {sub: 'AS 65002 · 2.2.2.2/32'}
+  r3: {sub: 'AS 65003 · 3.3.3.3/32'}
+steps:
+  - text: eBGP sessions ride TCP/179 between neighboring ASes; OPEN and KEEPALIVE bring them up.
+    packets:
+      - {from: r1, to: r2, kind: tcp, label: 'TCP/179 · OPEN', dur: 1.4}
+      - {from: r2, to: r3, kind: tcp, label: 'TCP/179 · OPEN', delay: 0.4, dur: 1.4}
+  - text: r1 originates 1.1.1.1/32; r2 prepends its own AS before re-advertising to r3.
+    packets:
+      - {from: r1, to: r2, kind: bgp, label: 'UPDATE 1.1.1.1/32 · AS_PATH 65001', dur: 1.4}
+      - {from: r2, to: r3, kind: bgp, label: 'AS_PATH 65002 65001', delay: 1.9, dur: 1.4}
+  - text: The reverse direction works the same way; r3's loopback reaches r1 across two AS hops.
+    packets:
+      - {from: r3, to: r2, kind: bgp, label: 'UPDATE 3.3.3.3/32 · AS_PATH 65003', dur: 1.4}
+      - {from: r2, to: r1, kind: bgp, label: 'AS_PATH 65002 65003', delay: 1.9, dur: 1.4}
+  - text: Data follows the BGP routes; r1 pings 3.3.3.3 through AS 65002 and AS 65003.
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: icmp, label: 'ICMP → 3.3.3.3', dur: 1.2}
+          - {from: r2, to: r3, kind: icmp, dur: 1.2}
+badges:
+  - {node: r1, text: 'AS_PATH 65002 65003', kind: bgp, steps: [3, 4]}

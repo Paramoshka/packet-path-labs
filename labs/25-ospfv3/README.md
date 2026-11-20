@@ -8,6 +8,13 @@ Run OSPFv3 for IPv6 and compare its interface-centric configuration and link-loc
 r1 ==== IPv6 ==== r2 ==== IPv6 ==== r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animated packet path: OSPFv3 hellos and prefix LSAs flow r1-r2-r3, SPF installs routes, then an ICMPv6 echo and reply cross the area-0 path." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

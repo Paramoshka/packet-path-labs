@@ -10,6 +10,13 @@ r1 ---- r2
 r4 ---- r3
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: the r1-r2 link fails; updated LSAs flood the ring, SPF reruns, and traffic to 3.3.3.3 converges onto the backup path r1-r4-r3." src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

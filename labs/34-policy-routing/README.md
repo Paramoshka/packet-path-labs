@@ -12,6 +12,13 @@ owns `198.18.0.1/32` on loopback, reachable through either provider.
 The main table initially sends that destination through isp1. No host default
 route is modified. Reverse-path filtering starts disabled in these containers.
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: source rules route pings from 10.34.1.2 via isp1 and 10.34.2.2 via isp2; an asymmetric reply via isp2 fails strict rp_filter but passes loose mode." src="packet-path.light.svg">
+</picture>
+
 ## Experiments
 
 1. On client inspect `ip rule` and `ip route get 198.18.0.1`.

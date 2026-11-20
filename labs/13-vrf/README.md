@@ -8,6 +8,13 @@ Place two identical address spaces in separate Linux VRFs and see how independen
 blue 10.0.0.0/24 -- r1[VRF blue | VRF red] -- 10.0.0.0/24 red
 ```
 
+## Packet path
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="packet-path.dark.svg">
+  <img alt="Animation: r1 pings 10.0.0.2 from vrf-blue (table 100) and vrf-red (table 200), reaching two different hosts with the same IP; the tables stay isolated" src="packet-path.light.svg">
+</picture>
+
 ## Run
 
 ```bash

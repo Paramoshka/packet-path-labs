@@ -1,0 +1,65 @@
+title: Source policy routing and asymmetric return
+iface_labels: false
+layout:
+  rows:
+    - [client]
+    - [isp1, isp2]
+    - [server]
+  x: {isp1: 240, isp2: 560}
+links:
+  - between: [client, isp1]
+    label: 10.34.1.0/24
+  - between: [client, isp2]
+    label: 10.34.2.0/24
+  - between: [isp1, server]
+    label: 10.34.3.0/30
+  - between: [isp2, server]
+    label: 10.34.4.0/30
+nodes:
+  client: {sub: ['10.34.1.2 (eth1)', '10.34.2.2 (eth2)']}
+  isp1: {sub: '10.34.1.1 · 10.34.3.1'}
+  isp2: {sub: '10.34.2.1 · 10.34.4.1'}
+  server: {sub: ['198.18.0.1/32 on lo', '10.34.3.2 · 10.34.4.2']}
+steps:
+  - text: 'Source policy: ip rule from 10.34.1.2 looks up table 101 via isp1; from 10.34.2.2 uses table 102 via isp2.'
+    packets:
+      - legs:
+          - {from: client, to: isp1, kind: icmp, label: 'ping -I 10.34.1.2 · table 101', dur: 0.8}
+          - {from: isp1, to: server, kind: icmp, dur: 0.8}
+      - legs:
+          - {from: client, to: isp2, kind: icmp, label: 'ping -I 10.34.2.2 · table 102', dur: 0.8}
+          - {from: isp2, to: server, kind: icmp, dur: 0.8}
+        delay: 1.6
+  - text: 'Rules removed, server return route moved to isp2: requests leave via isp1, replies come back via isp2.'
+    packets:
+      - legs:
+          - {from: client, to: isp1, kind: icmp, label: 'request · src 10.34.1.2', dur: 0.8}
+          - {from: isp1, to: server, kind: icmp, dur: 0.8}
+      - legs:
+          - {from: server, to: isp2, kind: icmp, label: 'reply · dst 10.34.1.2', dur: 0.8}
+          - {from: isp2, to: client, kind: icmp, dur: 0.8}
+        delay: 2.8
+  - text: 'rp_filter=1 on eth2: the strict reverse-path check expects the reply on eth1, so the kernel drops it.'
+    packets:
+      - legs:
+          - {from: client, to: isp1, kind: icmp, label: 'request · src 10.34.1.2', dur: 0.8}
+          - {from: isp1, to: server, kind: icmp, dur: 0.8}
+      - legs:
+          - {from: server, to: isp2, kind: icmp, label: 'reply arrives on eth2', dur: 0.8}
+          - {from: isp2, to: client, kind: rst, label: 'dropped · strict RPF', dur: 0.8}
+        delay: 2.8
+  - text: 'rp_filter=2 (loose) only needs any route to the source: the asymmetric reply is accepted and ping works.'
+    packets:
+      - legs:
+          - {from: client, to: isp1, kind: icmp, label: 'request · src 10.34.1.2', dur: 0.8}
+          - {from: isp1, to: server, kind: icmp, dur: 0.8}
+      - legs:
+          - {from: server, to: isp2, kind: icmp, label: 'reply · loose RPF passes', dur: 0.8}
+          - {from: isp2, to: client, kind: icmp, dur: 0.8}
+        delay: 2.8
+badges:
+  - {node: client, text: 'rules 101/102 · by source', kind: tcp, steps: [0, 1]}
+  - {node: client, text: 'rules removed · main table', kind: data, steps: [1, 2]}
+  - {node: client, text: 'rp_filter=1 · strict', kind: rst, steps: [2, 3]}
+  - {node: client, text: 'rp_filter=2 · loose', kind: icmp, steps: [3, 4]}
+  - {node: server, text: 'return route via isp2', kind: ospf, steps: [1, 4]}

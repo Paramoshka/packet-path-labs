@@ -1,0 +1,39 @@
+title: LDP label distribution and MPLS forwarding
+layout:
+  rows:
+    - [r1, r2, r3]
+    - [host]
+links:
+  - between: [r1, r2]
+    label: 10.0.12.0/30
+  - between: [r2, r3]
+    label: 10.0.23.0/30
+nodes:
+  r1: {sub: ['1.1.1.1/32', 'LDP ingress']}
+  r2: {sub: ['2.2.2.2/32', 'transit LSR']}
+  r3: {sub: ['3.3.3.3/32', 'LDP egress']}
+  host: {sub: ['Docker host', 'MPLS kernel modules']}
+steps:
+  - text: OSPF area 0 converges and floods the loopback /32 routes — the IGP basis for LDP label binding.
+    packets:
+      - {from: r1, to: r2, kind: ospf, label: OSPF hello / LSA, dur: 1.0}
+      - {from: r2, to: r3, kind: ospf, label: OSPF hello / LSA, delay: 0.3, dur: 1.0}
+  - text: LDP maps labels to /32 FECs (values illustrative); r3 advertises implicit-null for its own loopback.
+    packets:
+      - {from: r3, to: r2, kind: tcp, label: 'LDP: 3.3.3.3/32 → imp-null', dur: 1.2}
+      - {from: r2, to: r1, kind: tcp, label: 'LDP: 3.3.3.3/32 → label 100', delay: 1.5, dur: 1.2}
+  - text: r1 pushes label 100 for FEC 3.3.3.3/32; r2 pops it (penultimate-hop popping) and forwards plain IPv4.
+    packets:
+      - legs:
+          - {from: r1, to: r2, kind: vxlan, inner: icmp, encap: true, pulse: true, label: 'push 100 · ICMP → 3.3.3.3', dur: 1.6}
+          - {from: r2, to: r3, kind: icmp, pulse: true, label: IPv4 echo (popped), dur: 1.2}
+  - text: 'The reply is labeled symmetrically toward 1.1.1.1/32: r3 pushes, r2 pops, r1 receives plain IPv4.'
+    packets:
+      - legs:
+          - {from: r3, to: r2, kind: vxlan, inner: icmp, encap: true, pulse: true, label: 'push 200 · ICMP → 1.1.1.1', dur: 1.6}
+          - {from: r2, to: r1, kind: icmp, pulse: true, label: IPv4 reply (popped), dur: 1.2}
+badges:
+  - {node: r1, text: 'push 100 → 3.3.3.3/32', kind: vxlan, steps: [2, 4]}
+  - {node: r2, text: 'LFIB: 100 → pop (PHP)', kind: vxlan, steps: [2, 4]}
+dim:
+  - {node: host, steps: [0, 4]}
